@@ -92,6 +92,6 @@ MIT
 
 **ZundaMetan Navigator**で、新しいWeb体験を始めましょう！
 
-[![GitHub stars](https://img.shields.io/github/stars/yourusername/buddy-page-with-zunda-and-metan?style=social)](https://github.com/yourusername/buddy-page-with-zunda-and-metan)
+[![GitHub stars](https://img.shields.io/github/stars/izumiz-dev/buddy-page-with-zunda-and-metan?style=social)](https://github.com/izumiz-dev/buddy-page-with-zunda-and-metan)
 
 </div>
