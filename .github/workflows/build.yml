@@ -1,12 +1,16 @@
-name: Build
+name: Release
 
 on:
   push:
     branches:
       - main
 
+# GitHub Releaseを作成するための権限を追加
+permissions:
+  contents: write
+
 jobs:
-  build:
+  release:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -42,3 +46,20 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+      - name: Generate release date
+        id: date
+        run: echo "RELEASE_DATE=$(date +'%Y%m%d_%H%M%S')" >> $GITHUB_OUTPUT
+
+      - name: Zip build artifacts
+        run: |
+          zip -r buddy-page-${{ steps.date.outputs.RELEASE_DATE }}.zip ./dist
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Release ${{ steps.date.outputs.RELEASE_DATE }}
+          files: buddy-page-${{ steps.date.outputs.RELEASE_DATE }}.zip
+          tag_name: v${{ steps.date.outputs.RELEASE_DATE }}
+          draft: false
+          prerelease: false
