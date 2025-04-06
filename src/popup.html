@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ずんだもんと四国めたんの会話拡張機能</title>
+  <style>
+    body {
+      width: 320px;
+      padding: 15px;
+      font-family: "Rounded Mplus 1c", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif;
+      background-color: #f9f9f9;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      background-color: #e8f5e9;
+      padding: 12px;
+      border-radius: 10px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 17px;
+      margin: 0;
+      font-weight: bold;
+      color: #333;
+      line-height: 1.4;
+    }
+    .btn {
+      width: 100%;
+      padding: 12px;
+      background-color: #66bb6a;
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      cursor: pointer;
+      font-weight: bold;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      transition: all 0.3s ease;
+    }
+    .btn:hover {
+      background-color: #4caf50;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+    .settings-link {
+      display: block;
+      text-align: center;
+      margin-top: 15px;
+      color: #666;
+      font-size: 12px;
+      text-decoration: none;
+    }
+    .settings-link:hover {
+      text-decoration: underline;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>ずんだもんと四国めたんに<br>ページの内容をおはなししてもらう！</h1>
+  </div>
+  
+  <button id="startBtn" class="btn">お話を用意してもらう</button>
+  
+  <div id="status" class="status" style="display: none;"></div>
+  
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "ずんだもんと四国めたんの会話拡張機能",
+  "version": "1.0.0",
+  "description": "Webページの内容をずんだもんと四国めたんが会話形式で解説します",
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "css": []
+    }
+  ],
+  "options_page": "options.html",
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://generativelanguage.googleapis.com/*"
+  ]
+}

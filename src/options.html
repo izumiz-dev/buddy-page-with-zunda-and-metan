@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ずんだもんと四国めたんの会話拡張機能 - 設定</title>
+  <style>
+    body {
+      width: 100%;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      font-family: sans-serif;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 20px;
+    }
+    .form-group {
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input[type="text"],
+    input[type="url"] {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    .help-text {
+      font-size: 12px;
+      color: #666;
+      margin-top: 5px;
+    }
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 30px;
+    }
+    .btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    .save-btn {
+      background-color: #4caf50;
+      color: white;
+    }
+    .save-btn:hover {
+      background-color: #45a049;
+    }
+    .reset-btn {
+      background-color: #f5f5f5;
+      color: #333;
+    }
+    .reset-btn:hover {
+      background-color: #e0e0e0;
+    }
+    .status {
+      margin-top: 10px;
+      padding: 8px;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+    }
+  </style>
+</head>
+<body>
+  <h1>設定</h1>
+  
+  <form id="optionsForm">
+    <div class="form-group">
+      <label for="geminiApiKey">Google Gemini API Key</label>
+      <input type="text" id="geminiApiKey" name="geminiApiKey" placeholder="API キーを入力してください">
+      <p class="help-text">Google AI Studio からAPIキーを取得してください: <a href="https://aistudio.google.com/app/apikey" target="_blank">https://aistudio.google.com/app/apikey</a><br>本拡張機能ではGemini 2.0 Flashモデルを使用しています。</p>
+    </div>
+    
+    <div class="form-group">
+      <label for="voicevoxUrl">VOICEVOX サーバーURL</label>
+      <input type="url" id="voicevoxUrl" name="voicevoxUrl" placeholder="http://localhost:50021" value="http://localhost:50021">
+      <p class="help-text">VOICEVOX エンジンを実行するサーバーのURLを入力してください。ローカルで実行している場合は、デフォルトの値のままでOKです。</p>
+    </div>
+    
+    <div class="form-group">
+      <h3>ずんだもん設定</h3>
+      <label for="zundamonSpeakerId">ずんだもんの声ID</label>
+      <input type="text" id="zundamonSpeakerId" name="zundamonSpeakerId" value="3" placeholder="3">
+      <p class="help-text">VOICEVOXのずんだもんのスピーカーID。ノーマルは3、あまあまは1です。</p>
+    </div>
+    
+    <div class="form-group">
+      <h3>四国めたん設定</h3>
+      <label for="metanSpeakerId">四国めたんの声ID</label>
+      <input type="text" id="metanSpeakerId" name="metanSpeakerId" value="2" placeholder="2">
+      <p class="help-text">VOICEVOXの四国めたんのスピーカーID。ノーマルは2、あまあまは0です。</p>
+    </div>
+    
+    <div id="status" class="status" style="display: none;"></div>
+    
+    <div class="actions">
+      <button type="button" id="resetBtn" class="btn reset-btn">リセット</button>
+      <button type="submit" id="saveBtn" class="btn save-btn">保存</button>
+    </div>
+  </form>
+  
+  <script src="options.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "name": "buddy-page-with-zunda-and-metan",
+  "version": "1.0.0",
+  "description": "Chrome extension with Zundamon and Shikoku Metan explaining webpage content",
+  "scripts": {
+    "dev": "node esbuild.config.js --watch",
+    "build": "node esbuild.config.js",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "chrome-extension",
+    "zundamon",
+    "shikoku-metan",
+    "voicevox",
+    "gemini-api"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/chrome": "^0.0.250",
+    "@types/node": "^20.11.5",
+    "esbuild": "^0.19.11",
+    "typescript": "^5.3.3"
+  },
+  "dependencies": {
+  }
+}
