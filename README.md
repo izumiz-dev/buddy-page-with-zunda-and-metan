@@ -2,8 +2,6 @@
 
 <div align="center">
 
-![ZundaMetan Navigator Logo](src/assets/icons/icon128.png)
-
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Chrome](https://img.shields.io/badge/Google_Chrome-4285F4?style=for-the-badge&logo=Google-chrome&logoColor=white)](https://chrome.google.com/webstore)
 [![AI](https://img.shields.io/badge/Gemini_AI-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
@@ -75,11 +73,6 @@ _Web閲覧をもっと楽しく、もっと分かりやすく_
 > 🌸 おっとり系お姉さんキャラクター  
 > 丁寧な口調で、時々中二病っぽい言動も  
 > VOICEVOX:四国めたん
-
-## 📝 入力制限
-
-- **テキスト処理**: Gemini APIの制限（約32K-128Kトークン）内
-- **出力サイズ**: 最大2048トークン（約8,000文字）
 
 ## 📄 ライセンス
 
