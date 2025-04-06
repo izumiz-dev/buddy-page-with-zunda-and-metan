@@ -37,6 +37,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Close popup
     window.close();
   });
+
+  // 設定ページリンクのイベントハンドラ
+  document.getElementById('settingsLink')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    chrome.runtime.openOptionsPage();
+  });
 });
 
 /**

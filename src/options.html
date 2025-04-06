@@ -25,7 +25,8 @@
       font-weight: bold;
     }
     input[type="text"],
-    input[type="url"] {
+    input[type="url"],
+    input[type="password"] {
       width: 100%;
       padding: 8px;
       border: 1px solid #ccc;
@@ -78,6 +79,31 @@
       background-color: #e8f5e9;
       color: #2e7d32;
     }
+    .password-container {
+      position: relative;
+    }
+    .password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: #666;
+    }
+    .password-field {
+      padding-right: 40px;
+    }
+    .security-notice {
+      color: #2e7d32;
+      font-weight: 500;
+    }
+    .modified-form {
+      border-left: 3px solid #ffc107;
+      padding-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -86,8 +112,11 @@
   <form id="optionsForm">
     <div class="form-group">
       <label for="geminiApiKey">Google Gemini API Key</label>
-      <input type="text" id="geminiApiKey" name="geminiApiKey" placeholder="API キーを入力してください">
-      <p class="help-text">Google AI Studio からAPIキーを取得してください: <a href="https://aistudio.google.com/app/apikey" target="_blank">https://aistudio.google.com/app/apikey</a><br>本拡張機能ではGemini 2.0 Flashモデルを使用しています。</p>
+      <div class="password-container">
+        <input type="password" id="geminiApiKey" name="geminiApiKey" placeholder="API キーを入力してください" class="password-field" autocomplete="new-password" spellcheck="false" autocorrect="off" autocapitalize="off">
+        <button type="button" id="toggleApiKey" class="password-toggle">表示</button>
+      </div>
+      <p class="help-text">Google AI Studio からAPIキーを取得してください: <a href="https://aistudio.google.com/app/apikey" target="_blank">https://aistudio.google.com/app/apikey</a><br>本拡張機能ではGemini 2.0 Flashモデルを使用しています。<br><span class="security-notice">セキュリティ対策: APIキーは暗号化されて安全に保存されます。</span></p>
     </div>
     
     <div class="form-group">
@@ -118,6 +147,18 @@
     </div>
   </form>
   
+  <hr style="margin: 30px 0; border: 0; border-top: 1px solid #eee;">
+  
+  <div style="margin-top: 20px; font-size: 12px; color: #666;">
+    <h4 style="margin-bottom: 10px;">クレジット</h4>
+    <p>本拡張機能では以下のキャラクターボイスを使用しています：</p>
+    <ul style="margin-top: 5px;">
+      <li>VOICEVOX:ずんだもん</li>
+      <li>VOICEVOX:四国めたん</li>
+    </ul>
+    <p style="margin-top: 10px;">音声合成エンジン: <a href="https://voicevox.hiroshiba.jp/" target="_blank">VOICEVOX</a></p>
+  </div>
+
   <script src="options.js"></script>
 </body>
 </html>

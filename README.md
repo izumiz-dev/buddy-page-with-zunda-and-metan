@@ -1,106 +1,104 @@
-# ずんだもんと四国めたんの会話拡張機能
+# 🍵 ZundaMetan Navigator - Web解説コンビによる新感覚ブラウジング体験
 
-このリポジトリは、Webページの内容をずんだもんと四国めたんというキャラクターが会話形式で解説してくれるChrome拡張機能を実装したものです。AIを活用してページの内容を理解し、キャラクターの個性を活かした自然な会話形式で解説します。さらに、VOICEVOXを使用して実際の音声で読み上げる機能も備えています。
+<div align="center">
 
-## 構成
-* **フロントエンド**: TypeScript、Chrome Extension API
-* **AI処理**: Google Gemini API (gemini-2.0-flashモデル)（Webページ内容の理解と会話生成）
-* **音声合成**: VOICEVOX API（ずんだもん・四国めたんの音声生成）
-* **ビルドツール**: TypeScript, pnpm, esbuild 
+![ZundaMetan Navigator Logo](src/assets/icons/icon128.png)
 
-## 特徴的な実装
-1. **キャラクター性の表現**
-   * ずんだもん: 語尾に「〜のだ」「〜なのだ」をつける、東北地方をモチーフにした「ずんだもち」の妖精、元気で好奇心旺盛
-   * 四国めたん: おっとりした話し方、丁寧語を使用、時々中二病的な言動、冷静で説明上手
-2. **会話生成プロンプト**
-   * マークダウン形式でキャラクター設定と会話の特徴を定義
-   * ずんだもんが質問し、四国めたんが解説するパターンを基本構造に
-   * JSON形式の会話データを生成（詳細なキャラクター指定が可能）
-3. **UI実装**
-   * ドラッグ可能な会話ウィンドウ
-   * キャラクターごとに色分けされた会話バブル
-   * 再生中のテキストがハイライト表示
-4. **音声合成**
-   * キャラクターごとの音声設定（VOICEVOX内の話者ID指定）
-   * 音声データのプリロードによる滑らかな再生
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Chrome](https://img.shields.io/badge/Google_Chrome-4285F4?style=for-the-badge&logo=Google-chrome&logoColor=white)](https://chrome.google.com/webstore)
+[![AI](https://img.shields.io/badge/Gemini_AI-8E75B2?style=for-the-badge&logo=google&logoColor=white)](https://deepmind.google/technologies/gemini/)
+[![VOICEVOX](https://img.shields.io/badge/VOICEVOX-57B560?style=for-the-badge)](https://voicevox.hiroshiba.jp/)
 
-## 必須環境
+_Web閲覧をもっと楽しく、もっと分かりやすく_  
+</div>
 
-1. [Node.js](https://nodejs.org/) (v16以上)
-2. [pnpm](https://pnpm.io/) (v7以上)
-3. [VOICEVOX](https://voicevox.hiroshiba.jp/) (音声合成に使用)
-4. [Google Gemini API キー](https://aistudio.google.com/app/apikey)
+> [!NOTE]
+> このプロジェクトはClaudeを使用して開発されました。コードの一部はアシスタントによって生成または改善されています。
+> また、この README も Claude によってコードベースをもとに記述されています。
 
-## 開発セットアップ
+---
 
-### 1. リポジトリのクローン
+## 🌟 特徴
 
-```bash
-git clone https://github.com/yourusername/buddy-page-with-zunda-and-metan.git
-cd buddy-page-with-zunda-and-metan
-```
+ずんだもんと四国めたんがあなたのWeb体験を革新的にアップグレード！
 
-### 2. 依存関係のインストール
+- 🎭 **AIパワードキャラクター解説** - Webページの内容をキャラクターが個性豊かに解説
+- 🔊 **リアルタイム音声合成** - VOICEVOXによる自然な読み上げで、まるでそこにキャラクターがいるような体験
+- 🎨 **インタラクティブUI** - ドラッグ可能でリサイズ自在な会話ウィンドウ
+- 🤖 **最新AI技術** - Google Gemini APIによる高度な文章理解と会話生成
 
-```bash
-pnpm install
-```
+## 📱 デモ
+[デモ動画をBlueskyで見る](https://bsky.app/profile/did:plc:an3xifvom3u6bg6iug3drdjr/post/3lm5g55aq5k2p)  
+ずんだもんと四国めたんが、Webページの内容をリアルタイムに解説！
 
-### 3. 開発モードでの実行
+## 🎮 使ってみよう！
 
-```bash
-pnpm dev
-```
+1. 🔧 **インストール＆セットアップ**
+   ```bash
+   git clone https://github.com/yourusername/buddy-page-with-zunda-and-metan.git
+   cd buddy-page-with-zunda-and-metan
+   pnpm install
+   pnpm build
+   ```
 
-### 4. ビルド
+2. 🚀 **Chrome拡張機能として追加**
+   - Chrome拡張機能管理ページ（chrome://extensions）を開く
+   - デベロッパーモードをON
+   - 「パッケージ化されていない拡張機能を読み込む」から`dist`フォルダを選択
 
-```bash
-pnpm build
-```
+3. ⚙️ **初期設定**
+   - Gemini API キーを設定
+   - VOICEVOXサーバー設定（必要に応じて）
+   - キャラクター音声IDのカスタマイズ（オプション）
 
-## 拡張機能のインストール方法
+4. 🎉 **さあ、始めよう！**
+   - Webページを開く
+   - 拡張機能アイコンをクリック
+   - 「お話を用意してもらう」で会話スタート！
 
-1. `pnpm build` を実行してビルド
-2. Chromeで `chrome://extensions` を開く
-3. 「デベロッパーモード」を有効化
-4. 「パッケージ化されていない拡張機能を読み込む」をクリック
-5. `dist` ディレクトリを選択
+## 🔧 技術スタック
 
-## 拡張機能の使い方
+- **フロントエンド**: TypeScript + Chrome Extension API
+- **AI**: Google Gemini API (gemini-2.0-flash)
+- **音声**: VOICEVOX API
+- **ビルド**: pnpm + esbuild
+- **セキュリティ**: Web Crypto API
 
-1. 拡張機能をインストール後、Chromeの拡張機能設定ページ（chrome://extensions を開いて「詳細」をクリック）から設定を行います
-   - Gemini API キーを設定（Google AI Studioから取得）
-   - VOICEVOX サーバーURLを設定（通常はデフォルトのままでOK）
-   - 各キャラクターの音声IDを設定（必要に応じてカスタマイズ）
-2. Webページを開き、拡張機能のアイコンをクリック
-3. 「会話を開始」ボタンをクリック
-4. ずんだもんと四国めたんがページ内容を会話形式で解説します
-5. 「再生」ボタンをクリックすると音声で読み上げが始まります
+## 💫 キャラクター紹介
 
-## 技術的特徴
-1. **JSON形式のデータ処理**
-   * Gemini APIから会話をJSON形式で生成
-   * キャラクターと発話テキストを構造化
-   * 効率的な音声合成連携を実現
-2. **モジュール設計**
-   * 機能ごとに分離されたクラスとモジュール
-   * 再利用可能なユーティリティ関数
-3. **非同期処理**
-   * Promise/async-awaitを活用した非同期処理
-   * メッセージパッシング（バックグラウンド⇔コンテンツスクリプト間）
-4. **エラーハンドリング**
-   * 各APIとの通信エラーに対する適切な処理
-   * フォールバックパーサーによる堅牢性確保
-5. **UI/UX**
-   * ドラッグ可能なウィンドウ
-   * 会話再生時の視覚的フィードバック
-   * キャラクターごとのデザイン差異
+### ずんだもん
+> 🍡 東北地方の「ずんだもち」がモチーフの元気な妖精  
+> 好奇心旺盛で、語尾に「〜のだ」「〜なのだ」が特徴的  
+> VOICEVOX:ずんだもん
 
-## ライセンス
+### 四国めたん
+> 🌸 おっとり系お姉さんキャラクター  
+> 丁寧な口調で、時々中二病っぽい言動も  
+> VOICEVOX:四国めたん
+
+## 📝 入力制限
+
+- **テキスト処理**: Gemini APIの制限（約32K-128Kトークン）内
+- **出力サイズ**: 最大2048トークン（約8,000文字）
+
+## 📄 ライセンス
 
 MIT
 
-## 謝辞
+## 🙏 謝辞
 
-- [VOICEVOX](https://voicevox.hiroshiba.jp/)
-- [Google Gemini API](https://ai.google.dev/)
+- [Google Gemini API](https://ai.google.dev/)（会話生成AI）
+- [VOICEVOX](https://voicevox.hiroshiba.jp/)（音声合成エンジン）
+- キャラクター音声：
+  - ずんだもん by VOICEVOX
+  - 四国めたん by VOICEVOX
+
+---
+
+<div align="center">
+
+**ZundaMetan Navigator**で、新しいWeb体験を始めましょう！
+
+[![GitHub stars](https://img.shields.io/github/stars/yourusername/buddy-page-with-zunda-and-metan?style=social)](https://github.com/yourusername/buddy-page-with-zunda-and-metan)
+
+</div>
