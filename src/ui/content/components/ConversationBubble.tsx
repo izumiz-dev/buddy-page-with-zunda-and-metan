@@ -40,17 +40,18 @@ const ConversationBubble = ({ character, text, isActive = false, isProfessional 
 
   const bubbleStyle = {
     maxWidth: '80%',
-    padding: '10px',
-    borderRadius: '10px',
+    padding: '10px 12px', // Slightly more horizontal padding
+    borderRadius: '12px', // Slightly rounder corners
     backgroundColor: bubbleColor,
     color: '#333',
-    boxShadow: isActive ? '0 0 8px rgba(0, 0, 0, 0.3)' : 'none',
+    boxShadow: isActive ? '0 0 8px rgba(0, 0, 0, 0.3)' : '0 1px 3px rgba(0, 0, 0, 0.1)', // Add slight shadow to all bubbles
     transform: isActive ? 'scale(1.02)' : 'scale(1)',
     transition: 'all 0.2s ease',
     fontSize: isProfessional ? '0.95em' : '1em',
     lineHeight: isProfessional ? '1.5' : '1.4',
     borderLeft: isProfessional && isZundamon ? '3px solid #3949AB' : 'none',
-    borderRight: isProfessional && !isZundamon ? '3px solid #9C27B0' : 'none'
+    borderRight: isProfessional && !isZundamon ? '3px solid #9C27B0' : 'none',
+    wordBreak: 'break-word' // Prevent text overflow in bubbles
   };
 
   const nameStyle = {
@@ -76,7 +77,7 @@ const ConversationBubble = ({ character, text, isActive = false, isProfessional 
             <span style={modeIndicatorStyle}>Pro</span>
           )}
         </div>
-        <div>{text}</div>
+        <div style={{ textAlign: 'left' }}>{text}</div>
       </div>
     </div>
   );

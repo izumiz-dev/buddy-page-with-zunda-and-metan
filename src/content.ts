@@ -19,8 +19,9 @@ let pageTitle = ''; // Added state for page title
 let pageUrl = ''; // Added state for page url
 let generatedAt: Date | null = null; // Added state for generation timestamp
 
-// Preact root element reference
-let rootElement: HTMLElement | null = null;
+// Preact root element references
+let rootElement: HTMLElement | null = null; // The element where Preact renders UI components
+let containerElement: HTMLElement | null = null; // The container element with shadow DOM
 const ROOT_ELEMENT_ID = 'zunda-metan-content-root';
 
 // --- Core Logic ---
@@ -187,6 +188,7 @@ function handleSpeechSynthesized(payload: { index: number; audioUrl: string }) {
   // Only process if voice is still considered enabled and conversation exists
   if (!enableVoice || !conversation || !conversation.lines[payload.index]) return;
 
+  console.log(`Received speech synthesis for line ${payload.index}`);
   conversation.lines[payload.index].audioUrl = payload.audioUrl;
 
   // Start playback automatically if it's the first line and auto-play is enabled
@@ -195,6 +197,17 @@ function handleSpeechSynthesized(payload: { index: number; audioUrl: string }) {
     console.log('Auto-playing conversation...');
     autoPlayOnReady = false; // Disable auto-play after starting once
     startPlayback(); 
+  }
+  
+  // If we're currently waiting for this specific line's audio while playing (retry mechanism active)
+  // and the current line doesn't have audio yet, this update might be for the line we're waiting on
+  if (isPlaying && currentLineIndex < conversation.lines.length) {
+    const currentLine = conversation.lines[currentLineIndex];
+    if (!currentLine.audioUrl && payload.index === currentLineIndex) {
+      console.log(`Audio became available for current playing line ${currentLineIndex}, resuming playback`);
+      // Trigger playback of this line immediately, reset retry counter
+      playCurrentLine(0, 2000);
+    }
   }
   
   renderConversationUI(); // Re-render to update UI state (e.g., enable play button)
@@ -217,18 +230,81 @@ function handleError(errorPayload: { code: string; message: string }) {
 /**
  * Ensures the root element for the Preact app exists in the DOM.
  */
+/**
+ * Ensures the root element exists and properly sets up Shadow DOM if needed.
+ * This handles both initial creation and subsequent reuse scenarios.
+ */
 function ensureRootElement() {
-  if (!rootElement || !document.body.contains(rootElement)) {
-    rootElement = document.getElementById(ROOT_ELEMENT_ID) as HTMLElement | null;
-    if (!rootElement) {
-      rootElement = document.createElement('div');
-      rootElement.id = ROOT_ELEMENT_ID;
-      rootElement.style.position = 'fixed'; // Basic positioning
-      rootElement.style.zIndex = '2147483647'; // Ensure high z-index
-      document.body.appendChild(rootElement);
+  // First check if container element exists and is still in document
+  if (!containerElement || !document.body.contains(containerElement)) {
+    // We need to create a new container and shadow DOM structure
+    containerElement = document.getElementById(ROOT_ELEMENT_ID) as HTMLElement | null;
+    
+    // If it doesn't exist or has been removed, recreate it
+    if (!containerElement) {
+      console.log('Creating new container and shadow DOM structure');
+      // Create the container element
+      containerElement = document.createElement('div');
+      containerElement.id = ROOT_ELEMENT_ID;
+      containerElement.style.position = 'fixed';
+      containerElement.style.zIndex = '2147483647';
+      
+      // Create a shadow DOM for style isolation
+      const shadowRoot = containerElement.attachShadow({ mode: 'closed' });
+      
+      // Create a container within the shadow DOM for Preact to render into
+      const shadowContainer = document.createElement('div');
+      shadowContainer.id = 'shadow-container';
+      shadowRoot.appendChild(shadowContainer);
+      
+      // Append the container element to the document body
+      document.body.appendChild(containerElement);
+      
+      // Set rootElement to be the shadow container where Preact will render
+      rootElement = shadowContainer;
+    } else {
+      // Container exists but we need to make sure we have the correct Shadow DOM reference
+      console.log('Container exists, retrieving shadow DOM references');
+      const shadowRoot = containerElement.shadowRoot;
+      if (shadowRoot) {
+        rootElement = shadowRoot.getElementById('shadow-container');
+      } else {
+        // This shouldn't happen, but just in case shadow DOM was detached somehow
+        console.error('Shadow DOM is missing, recreating it');
+        const newShadowRoot = containerElement.attachShadow({ mode: 'closed' });
+        rootElement = document.createElement('div');
+        rootElement.id = 'shadow-container';
+        newShadowRoot.appendChild(rootElement);
+      }
     }
   }
-  rootElement.style.display = 'block'; // Ensure visible
+  
+  // If for some reason containerElement exists but rootElement doesn't, reconnect them
+  if (containerElement && !rootElement) {
+    console.warn('Container exists but rootElement missing, reconnecting');
+    if (containerElement.shadowRoot) {
+      rootElement = containerElement.shadowRoot.getElementById('shadow-container');
+      if (!rootElement) {
+        rootElement = document.createElement('div');
+        rootElement.id = 'shadow-container';
+        containerElement.shadowRoot.appendChild(rootElement);
+      }
+    } else {
+      const newShadowRoot = containerElement.attachShadow({ mode: 'closed' });
+      rootElement = document.createElement('div');
+      rootElement.id = 'shadow-container';
+      newShadowRoot.appendChild(rootElement);
+    }
+  }
+  
+  if (containerElement) {
+    containerElement.style.display = 'block'; // Ensure container is visible
+  }
+  
+  if (!rootElement) {
+    console.error('Failed to create or find root element for rendering');
+    return;
+  }
 }
 
 /**
@@ -238,6 +314,119 @@ function renderConversationUI() {
   if (!rootElement) {
     console.error('Cannot render UI: Root element not found.');
     return;
+  }
+  
+  // Create a style element to inject CSS inside the shadow DOM
+  // This style will be isolated from the host page's styles
+  if (!rootElement.querySelector('#shadow-styles')) {
+    const styleElement = document.createElement('style');
+    styleElement.id = 'shadow-styles';
+    styleElement.textContent = `
+      /*
+       * Base and Reset Styles
+       * Ensure all elements start with a clean slate
+       */
+      * {
+        box-sizing: border-box;
+        font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Noto Sans JP", "Meiryo", sans-serif;
+        margin: 0;
+        padding: 0;
+        color: initial;
+        font-size: initial;
+        line-height: normal;
+      }
+      
+      /*
+       * Container Styles
+       * Main wrapper for the chat UI
+       */
+      .conversation-container {
+        all: initial; /* Reset all inherited properties */
+        font-family: "Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Noto Sans JP", "Meiryo", sans-serif;
+        color: #333;
+        box-sizing: border-box;
+        line-height: 1.4;
+      }
+      
+      /*
+       * Conversation Message Styles
+       * Ensure text is properly aligned in messages
+       */
+      .conversation-bubble div {
+        text-align: left !important;
+      }
+      
+      /*
+       * Button Styles
+       * Consistent styling for all buttons
+       */
+      button {
+        position: relative !important;
+        display: inline-block !important;
+        font-family: inherit !important;
+        text-align: center !important;
+        vertical-align: middle !important;
+        border: none;
+        cursor: pointer;
+      }
+      
+      /*
+       * Header Styles
+       * Ensure text in header is always white
+       */
+      .conversation-container [ref=headerRef],
+      .conversation-container [ref=headerRef] * {
+        color: #fff !important;
+      }
+      
+      /* Mode indicator always white */
+      .conversation-container [ref=headerRef] span[style*="modeIndicator"] {
+        color: #fff !important;
+        background: rgba(255, 255, 255, 0.3) !important;
+      }
+      
+      /*
+       * Control Button Styles
+       * Make sure play/pause/stop buttons have proper spacing
+       */
+      .controls button {
+        padding: 8px 15px !important;
+        line-height: normal !important;
+        font-weight: bold !important;
+        border-radius: 20px !important;
+      }
+      
+      /*
+       * Animation for loading spinner
+       */
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+      
+      /*
+       * Scrollbar Styles
+       * Customized scrollbars for better aesthetics
+       */
+      .conversation-container *::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      
+      .conversation-container *::-webkit-scrollbar-track {
+        background: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+      }
+      
+      .conversation-container *::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 8px;
+      }
+      
+      .conversation-container *::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+      }
+    `;
+    rootElement.appendChild(styleElement);
   }
 
   // Render the actual ConversationUI component with current state and handlers
@@ -305,8 +494,9 @@ function stopAndResetPlayback() {
 
 /**
  * Plays the audio for the current line index.
+ * Includes retry mechanism for when audio isn't ready yet.
  */
-function playCurrentLine() {
+function playCurrentLine(retryCount = 0, retryDelay = 2000) {
   if (!isPlaying || !conversation || currentLineIndex >= conversation.lines.length) {
     stopAndResetPlayback(); // Stop if end is reached or state is invalid
     return;
@@ -315,10 +505,24 @@ function playCurrentLine() {
   const line = conversation.lines[currentLineIndex];
 
   if (!line.audioUrl) {
-    // Audio not ready yet, wait or skip? For now, just stop.
-    console.warn(`Audio not ready for line ${currentLineIndex}, stopping playback.`);
-    stopAndResetPlayback(); 
-    return;
+    // Audio not ready yet, implement retry logic with exponential backoff
+    const maxRetries = 8; // 増加：より多くのリトライ回数
+    if (retryCount < maxRetries) {
+      console.log(`Audio not ready for line ${currentLineIndex}, retrying in ${retryDelay/1000} seconds (attempt ${retryCount + 1}/${maxRetries})`);
+      setTimeout(() => {
+        // Only retry if we're still in playing state
+        if (isPlaying) {
+          playCurrentLine(retryCount + 1, retryDelay * 2); // 増加：リトライごとに2倍の待ち時間
+        }
+      }, retryDelay);
+      return;
+    } else {
+      // Max retries reached, log error and move to next line
+      console.warn(`Audio not available for line ${currentLineIndex} after ${maxRetries} retries, skipping to next line`);
+      currentLineIndex++;
+      playCurrentLine(0, 2000); // Reset retry count for next line
+      return;
+    }
   }
 
   // Stop previous audio if any (shouldn't happen with proper onended handling)
@@ -332,7 +536,7 @@ function playCurrentLine() {
   currentAudio.onended = () => {
     // Automatically move to the next line when audio finishes
     currentLineIndex++;
-    playCurrentLine(); // Play next line
+    playCurrentLine(0, 2000); // Reset retry count for next line
   };
 
   currentAudio.play().catch(err => {
@@ -358,13 +562,44 @@ function handleStop() {
   stopAndResetPlayback();
 }
 
+/**
+ * Handles the close action for the conversation window.
+ * Properly cleans up resources and hides the UI.
+ */
 function handleClose() {
+  // First stop any audio playback
   stopAndResetPlayback();
+  
+  // Set UI visibility flag to false
   isUIVisible = false;
+  
+  // Unmount Preact components if rootElement exists
   if (rootElement) {
     render(null, rootElement); // Unmount the component
-    rootElement.style.display = 'none'; // Hide the root
   }
+  
+  // Hide the container element if it exists
+  if (containerElement) {
+    containerElement.style.display = 'none'; // Hide the container element
+  }
+  
+  // Complete reset of UI state to ensure clean reopening
+  // Don't reset these values as they persist between sessions
+  // currentMode = ConversationMode.CASUAL; // Don't reset mode preference
+  // enableVoice = true; // Don't reset voice preference
+  
+  // Reset all UI-specific states
+  conversation = null;
+  currentLineIndex = 0;
+  isPlaying = false;
+  isLoading = false;
+  error = null;
+  autoPlayOnReady = false;
+  generatedAt = null;
+  
+  // Note: we don't completely remove elements from DOM
+  // to maintain position and size settings for a better UX
+  console.log('Conversation UI closed');
 }
 
 console.log('ZundaMetan content script loaded.'); // Log script load

@@ -203,7 +203,7 @@ export function ConversationUI({
   };
 
   return (
-    <div ref={containerRef} style={containerStyle}>
+    <div ref={containerRef} style={containerStyle} class="conversation-container">
       {/* Resize Handle */}
       <div 
         ref={resizeHandleRef} 
@@ -218,7 +218,7 @@ export function ConversationUI({
       {/* Header */}
       <div ref={headerRef} style={headerStyle}>
         <div>
-          <span style={{ fontWeight: 'bold' }}>ずんだもん & 四国めたん</span>
+          <span style={{ fontWeight: 'bold', color: '#fff' }}>ずんだもん & 四国めたん</span>
           {isProfessional && (
             <span style={styles.modeIndicator}>プロフェッショナル</span>
           )}
@@ -272,7 +272,7 @@ export function ConversationUI({
 
       {/* Controls - Conditionally render based on enableVoice */}
       {enableVoice && (
-        <div style={styles.controls}>
+        <div style={styles.controls} class="controls">
           <button 
             onClick={onPlayPause} 
             disabled={!canPlay || isLoading} 
@@ -305,13 +305,14 @@ const styles = {
     minWidth: '320px',
     minHeight: '400px',
     backgroundColor: 'white',
-    borderRadius: '15px',
-    boxShadow: '0 6px 20px rgba(0, 0, 0, 0.2)',
+    borderRadius: '16px', // Slightly more rounded corners
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15), 0 2px 8px rgba(0, 0, 0, 0.1)', // Enhanced shadow
     zIndex: '2147483647', // Ensure high z-index
     overflow: 'hidden', // Important for border-radius and children
     display: 'flex',
     flexDirection: 'column',
     fontFamily: '"Hiragino Maru Gothic ProN", "Rounded Mplus 1c", "Noto Sans JP", "Meiryo", sans-serif',
+    border: '1px solid rgba(0, 0, 0, 0.08)', // Subtle border
   } as const, // Use 'as const' for better type inference with CSS properties
   resizeHandle: {
     position: 'absolute',
@@ -324,7 +325,7 @@ const styles = {
     zIndex: 20, // Above header
   } as const,
   header: {
-    padding: '10px 15px', // Adjusted padding
+    padding: '12px 16px', // Slightly more padding
     color: 'white',
     display: 'flex',
     justifyContent: 'space-between',
@@ -332,6 +333,7 @@ const styles = {
     cursor: 'move',
     flexShrink: 0, // Prevent header from shrinking
     position: 'relative', // Needed for absolute positioning of buttons if required
+    boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)', // Add subtle shadow for depth
   } as const,
   headerButtons: { // Style for the button container
     display: 'flex',
@@ -341,10 +343,11 @@ const styles = {
     display: 'inline-block',
     fontSize: '11px',
     padding: '2px 6px',
-    background: 'rgba(255, 255, 255, 0.2)',
+    background: 'rgba(255, 255, 255, 0.3)',
     borderRadius: '10px',
     marginLeft: '8px',
     verticalAlign: 'middle',
+    color: 'white',
   } as const,
   headerButton: { // Common style for header buttons
     background: 'none',
@@ -376,6 +379,8 @@ const styles = {
     flexDirection: 'column',
     gap: '12px',
     backgroundColor: '#f9f9f9',
+    scrollbarWidth: 'thin', // Firefox
+    scrollbarColor: '#ccc transparent', // Firefox
   } as const,
   loadingContainer: {
     padding: '10px',
@@ -404,8 +409,8 @@ const styles = {
     justifyContent: 'center',
   } as const,
   controls: {
-    padding: '12px',
-    borderTop: '1px solid #eee',
+    padding: '14px',
+    borderTop: '1px solid rgba(0, 0, 0, 0.08)', // Lighter border color
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
@@ -418,11 +423,13 @@ const styles = {
     color: 'white',
     border: 'none',
     borderRadius: '20px',
-    padding: '8px 15px',
+    padding: '10px 15px', // Slightly more padding
     margin: '0 5px',
     fontWeight: 'bold',
-    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-    transition: 'opacity 0.3s ease, background-color 0.3s ease', // Added transition
+    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.15)',
+    transition: 'all 0.2s ease',
+    fontSize: '0.92em', // Slightly smaller font
+    cursor: 'pointer',
   } as const,
   playPauseButton: {
      background: 'linear-gradient(to right, #4caf50, #66bb6a)',
@@ -432,18 +439,4 @@ const styles = {
   } as const,
 };
 
-// Inject keyframes for spinner (if not already present)
-// This is a bit hacky, ideally use CSS modules or styled-components
-(() => {
-  const styleId = 'zunda-metan-keyframes';
-  if (!document.getElementById(styleId)) {
-    const styleElement = document.createElement('style');
-    styleElement.id = styleId;
-    styleElement.textContent = `
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    `;
-    document.head.appendChild(styleElement);
-  }
-})();
+// No need to inject keyframes here anymore as they are handled in shadow DOM
