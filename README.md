@@ -22,8 +22,12 @@ _Web閲覧をもっと楽しく、もっと分かりやすく_
 
 - 🎭 **AIパワードキャラクター解説** - Webページの内容をキャラクターが個性豊かに解説
 - 🔊 **リアルタイム音声合成** - VOICEVOXによる自然な読み上げで、まるでそこにキャラクターがいるような体験
-- 🎨 **インタラクティブUI** - ドラッグ可能でリサイズ自在な会話ウィンドウ
-- 🤖 **最新AI技術** - Google Gemini APIによる高度な文章理解と会話生成
+- 🎨 **高度なインタラクティブUI**
+  - ドラッグ可能でリサイズ自在な会話ウィンドウ
+  - スムーズなアニメーションと直感的な操作感
+  - レスポンシブなレイアウトとモダンなデザイン
+  - 美しいグラデーションとアニメーション効果
+- 🤖 **最新AI技術** - Google Gemini Flash APIによる高度な文章理解と会話生成
 
 ## 📱 デモ
 [デモ動画をBlueskyで見る](https://bsky.app/profile/did:plc:an3xifvom3u6bg6iug3drdjr/post/3lm5g55aq5k2p)  
@@ -45,8 +49,8 @@ _Web閲覧をもっと楽しく、もっと分かりやすく_
    - 「パッケージ化されていない拡張機能を読み込む」から`dist`フォルダを選択
 
 3. ⚙️ **初期設定**
-   - Gemini API キーを設定
-   - VOICEVOXサーバー設定（必要に応じて）
+   - Gemini API キーを設定（必須）
+   - VOICEVOXサーバー設定（音声機能を使用する場合）
    - キャラクター音声IDのカスタマイズ（オプション）
 
 4. 🎉 **さあ、始めよう！**
@@ -56,11 +60,25 @@ _Web閲覧をもっと楽しく、もっと分かりやすく_
 
 ## 🔧 技術スタック
 
-- **フロントエンド**: TypeScript + Chrome Extension API
-- **AI**: Google Gemini API (gemini-2.0-flash)
-- **音声**: VOICEVOX API
-- **ビルド**: pnpm + esbuild
-- **セキュリティ**: Web Crypto API
+- **フロントエンド**
+  - TypeScript
+  - Preact + Hooks
+  - Chrome Extension API
+  - CSS-in-JS（インラインスタイル）
+- **AI & 音声**
+  - Google Gemini API (gemini-2.0-flash)
+  - VOICEVOX API
+- **ビルド & 開発**
+  - pnpm
+  - esbuild
+  - TypeScript
+- **セキュリティ**
+  - Web Crypto API（APIキーの暗号化）
+  - Chrome Storage API（設定の安全な保存）
+- **デザイン**
+  - Rounded M+ フォント
+  - モダンなグラデーションUI
+  - レスポンシブデザイン
 
 ## 💫 キャラクター紹介
 
