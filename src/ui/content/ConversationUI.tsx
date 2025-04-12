@@ -1,6 +1,7 @@
 import { useRef, useEffect } from 'preact/hooks';
 import { Conversation, ConversationMode } from '../../types';
 import ConversationBubble from './components/ConversationBubble'; // Changed to default import
+import { exportConversationToMarkdown } from '../../utils/exportConversation'; // Import the export function
 
 interface ConversationUIProps {
   isLoading: boolean;
@@ -13,6 +14,10 @@ interface ConversationUIProps {
   onClose: () => void;
   mode?: ConversationMode;
   enableVoice: boolean; // Add enableVoice prop
+  // Add metadata props
+  pageTitle: string;
+  pageUrl: string;
+  generatedAt: Date | null;
 }
 
 export function ConversationUI({
@@ -25,7 +30,11 @@ export function ConversationUI({
   onStop,
   onClose,
   mode = ConversationMode.CASUAL,
-  enableVoice // Destructure enableVoice
+  enableVoice, // Destructure enableVoice
+  // Destructure metadata props
+  pageTitle,
+  pageUrl,
+  generatedAt
 }: ConversationUIProps) {
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -157,6 +166,7 @@ export function ConversationUI({
 
   // Determine if play button should be enabled
   const canPlay = !!conversation && conversation.lines.some(line => line.audioUrl);
+  const canExport = !!conversation && !isLoading && !!generatedAt; // Determine if export is possible
 
   // Dynamic header style based on mode
   const headerStyle = {
@@ -186,8 +196,14 @@ export function ConversationUI({
     cursor: (!canPlay || isLoading) ? 'not-allowed' : 'pointer'
   };
 
+  // Dynamic container style based on mode - adjust width for professional mode
+  const containerStyle = {
+    ...styles.container,
+    width: isProfessional ? '480px' : '320px' // 1.5x width for professional mode
+  };
+
   return (
-    <div ref={containerRef} style={styles.container}>
+    <div ref={containerRef} style={containerStyle}>
       {/* Resize Handle */}
       <div 
         ref={resizeHandleRef} 
@@ -204,19 +220,39 @@ export function ConversationUI({
         <div>
           <span style={{ fontWeight: 'bold' }}>ずんだもん & 四国めたん</span>
           {isProfessional && (
-            <span style={styles.modeIndicator}>プロフェッショナルモード</span>
+            <span style={styles.modeIndicator}>プロフェッショナル</span>
           )}
         </div>
-        <button onClick={onClose} style={styles.closeButton}>×</button>
+        <div style={styles.headerButtons}> {/* Container for header buttons */}
+          <button 
+            onClick={() => {
+              if (canExport && conversation && generatedAt) {
+                exportConversationToMarkdown(conversation, pageTitle, pageUrl, generatedAt);
+              }
+            }} 
+            disabled={!canExport} 
+            style={{...styles.headerButton, ...styles.exportButton, opacity: canExport ? 1 : 0.5, cursor: canExport ? 'pointer' : 'not-allowed'}}
+            title="会話をMarkdown形式でエクスポート" // Tooltip
+          >
+            保存
+          </button>
+          <button onClick={onClose} style={{...styles.headerButton, ...styles.closeButton}}>×</button>
+        </div>
       </div>
 
       {/* Conversation Area */}
       <div ref={conversationAreaRef} style={styles.conversationArea}>
         {isLoading && (
-          <div style={styles.loadingContainer}>
+            <div style={styles.loadingContainer}>
             <div style={loadingIndicatorStyle}></div>
-            {isProfessional ? 'プロフェッショナル会話を生成中...' : '会話を生成中...'}
-          </div>
+            {isProfessional ? (
+              <>
+              プロフェッショナル会話を生成中...
+              <br />
+              通常モードより時間がかかる場合があります...
+              </>
+            ) : '会話を生成中...'}
+            </div>
         )}
         {error && (
           <div style={styles.errorContainer}>
@@ -295,6 +331,11 @@ const styles = {
     alignItems: 'center',
     cursor: 'move',
     flexShrink: 0, // Prevent header from shrinking
+    position: 'relative', // Needed for absolute positioning of buttons if required
+  } as const,
+  headerButtons: { // Style for the button container
+    display: 'flex',
+    alignItems: 'center',
   } as const,
   modeIndicator: {
     display: 'inline-block',
@@ -305,14 +346,27 @@ const styles = {
     marginLeft: '8px',
     verticalAlign: 'middle',
   } as const,
-  closeButton: {
+  headerButton: { // Common style for header buttons
     background: 'none',
     border: 'none',
     color: 'white',
-    fontSize: '20px',
     cursor: 'pointer',
-    padding: '0 5px', // Add some padding for easier clicking
+    padding: '0 5px',
+    marginLeft: '5px', // Space between buttons
+    fontSize: '16px', // Adjusted font size for header buttons
     lineHeight: 1,
+  } as const,
+  exportButton: {
+    // Specific styles for export button
+    fontSize: '12px', // Smaller font size for chip style
+    padding: '2px 8px', // Adjust padding for chip style
+    borderRadius: '12px', // Rounded corners for chip style
+    background: 'rgba(255, 255, 255, 0.2)', // Subtle background
+    marginRight: '8px', // Add some space before the close button
+  } as const,
+  closeButton: {
+    // Specific styles for close button if needed
+    fontSize: '22px', // Make close button slightly larger
   } as const,
   conversationArea: {
     flex: 1, // Take remaining space

@@ -15,6 +15,9 @@ let isUIVisible = false; // Track UI visibility
 let autoPlayOnReady = false; // For auto-play after generation
 let currentMode = ConversationMode.CASUAL; // Default mode
 let enableVoice = true; // Added state for voice setting
+let pageTitle = ''; // Added state for page title
+let pageUrl = ''; // Added state for page url
+let generatedAt: Date | null = null; // Added state for generation timestamp
 
 // Preact root element reference
 let rootElement: HTMLElement | null = null;
@@ -86,6 +89,9 @@ async function startConversation(mode: ConversationMode = ConversationMode.CASUA
   error = null;
   autoPlayOnReady = true; // Reset auto-play flag
   isUIVisible = true;
+  pageTitle = document.title; // Get page title
+  pageUrl = location.href; // Get page URL
+  generatedAt = null; // Reset timestamp
 
   // Load settings first
   try {
@@ -127,6 +133,7 @@ async function handleGeneratedConversation(generatedConversation: Conversation) 
   conversation = generatedConversation;
   isLoading = false; // Turn off loading state
   error = null; // Clear any previous error
+  generatedAt = new Date(); // Set generation timestamp
 
   // Update current mode if available from conversation
   if (conversation.mode) {
@@ -244,7 +251,11 @@ function renderConversationUI() {
       onStop: handleStop,
       onClose: handleClose,
       mode: currentMode,
-      enableVoice: enableVoice // Pass voice setting to UI
+      enableVoice: enableVoice, // Pass voice setting to UI
+      // Pass metadata to UI
+      pageTitle: pageTitle,
+      pageUrl: pageUrl,
+      generatedAt: generatedAt
   });
 
   render(uiComponent, rootElement);
