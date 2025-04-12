@@ -1,4 +1,4 @@
-import { h, render, Fragment } from 'preact'; // Added Preact imports
+import { h, render } from 'preact'; // Added Preact imports
 import { MessageType, Conversation, ConversationLine, Character } from './types';
 import { extractPageContent } from './utils/extractPageContent';
 import { ConversationUI } from './ui/content/ConversationUI'; // Import the actual component

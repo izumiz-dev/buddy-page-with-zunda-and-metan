@@ -1,6 +1,5 @@
-import { h, Fragment } from 'preact';
-import { useRef, useEffect, useState, useCallback } from 'preact/hooks';
-import { Conversation, ConversationLine, Character } from '../../types';
+import { useRef, useEffect } from 'preact/hooks';
+import { Conversation } from '../../types';
 import ConversationBubble from './components/ConversationBubble'; // Changed to default import
 
 interface ConversationUIProps {
