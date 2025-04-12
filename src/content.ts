@@ -1,7 +1,8 @@
 import { h, render } from 'preact'; // Added Preact imports
-import { MessageType, Conversation, ConversationLine, Character } from './types';
+import { MessageType, Conversation, ConversationLine, Character, ConversationMode } from './types';
 import { extractPageContent } from './utils/extractPageContent';
 import { ConversationUI } from './ui/content/ConversationUI'; // Import the actual component
+import { loadSettings } from './utils/storage';
 
 // --- State Management ---
 let conversation: Conversation | null = null;
@@ -12,6 +13,7 @@ let isLoading = false; // Added loading state
 let error: { code: string; message: string } | null = null; // Added error state
 let isUIVisible = false; // Track UI visibility
 let autoPlayOnReady = false; // For auto-play after generation
+let currentMode = ConversationMode.CASUAL; // Default mode
 
 // Preact root element reference
 let rootElement: HTMLElement | null = null;
@@ -53,7 +55,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return false; // Indicate sync response not needed or handled
   } else if (message.action === 'startConversation') {
     console.log('Content script received startConversation command from popup');
-    startConversation(); // No need to check isProcessingRequest here, background handles it
+    // Check if mode is specified in the message
+    const mode = message.mode ? message.mode : ConversationMode.CASUAL;
+    startConversation(mode);
+    sendResponse({ status: 'processing' }); // Acknowledge popup
+    return false;
+  } else if (message.action === 'startProfessionalConversation') {
+    console.log('Content script received startProfessionalConversation command from popup');
+    startConversation(ConversationMode.PROFESSIONAL);
     sendResponse({ status: 'processing' }); // Acknowledge popup
     return false;
   }
@@ -62,9 +71,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
 /**
  * Initializes or restarts the conversation process.
+ * @param mode Conversation mode (casual or professional)
  */
-function startConversation() {
-  console.log('Starting conversation process...');
+async function startConversation(mode: ConversationMode = ConversationMode.CASUAL) {
+  console.log(`Starting conversation process in ${mode} mode...`);
+  
+  currentMode = mode;
   
   // Reset state
   conversation = null;
@@ -78,11 +90,25 @@ function startConversation() {
   ensureRootElement();
   renderConversationUI(); 
 
+  // Load default mode from settings if needed
+  if (mode === undefined) {
+    try {
+      const settings = await loadSettings();
+      mode = settings.defaultConversationMode || ConversationMode.CASUAL;
+    } catch (error) {
+      console.error('Error loading settings, using default mode:', error);
+      mode = ConversationMode.CASUAL;
+    }
+  }
+
   // Extract content and send to background
   const pageContent = extractPageContent();
   chrome.runtime.sendMessage({
     type: MessageType.START_CONVERSATION,
-    payload: pageContent
+    payload: {
+      content: pageContent,
+      mode: mode
+    }
   });
 }
 
@@ -92,8 +118,12 @@ function startConversation() {
 function handleGeneratedConversation(generatedConversation: Conversation) {
   conversation = generatedConversation;
   isLoading = false; // Turn off loading state
-  // isProcessingRequest = false; // Background handles request processing flag
   error = null; // Clear any previous error
+  
+  // Update current mode if available from conversation
+  if (conversation.mode) {
+    currentMode = conversation.mode;
+  }
 
   // Re-render the UI with the new conversation data
   renderConversationUI(); 
@@ -125,7 +155,6 @@ function handleError(errorPayload: { code: string; message: string }) {
   isLoading = false;
   conversation = null; // Clear conversation on error
   stopAndResetPlayback();
-  // isProcessingRequest = false; // Background handles request processing flag
   renderConversationUI(); 
 }
 
@@ -167,6 +196,7 @@ function renderConversationUI() {
       onPlayPause: handlePlayPause,
       onStop: handleStop,
       onClose: handleClose,
+      mode: currentMode
   });
 
   render(uiComponent, rootElement);

@@ -1,5 +1,5 @@
 import { useRef, useEffect } from 'preact/hooks';
-import { Conversation } from '../../types';
+import { Conversation, ConversationMode } from '../../types';
 import ConversationBubble from './components/ConversationBubble'; // Changed to default import
 
 interface ConversationUIProps {
@@ -11,6 +11,7 @@ interface ConversationUIProps {
   onPlayPause: () => void;
   onStop: () => void;
   onClose: () => void;
+  mode?: ConversationMode;
 }
 
 export function ConversationUI({
@@ -22,12 +23,19 @@ export function ConversationUI({
   onPlayPause,
   onStop,
   onClose,
+  mode = ConversationMode.CASUAL
 }: ConversationUIProps) {
   
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const conversationAreaRef = useRef<HTMLDivElement>(null);
+
+  // Use mode from conversation if available
+  const displayMode = conversation?.mode || mode;
+  
+  // Determine if professional mode is active
+  const isProfessional = displayMode === ConversationMode.PROFESSIONAL;
 
   // --- Draggable Logic ---
   useEffect(() => {
@@ -148,14 +156,55 @@ export function ConversationUI({
   // Determine if play button should be enabled
   const canPlay = !!conversation && conversation.lines.some(line => line.audioUrl);
 
+  // Dynamic header style based on mode
+  const headerStyle = {
+    ...styles.header,
+    background: isProfessional 
+      ? 'linear-gradient(to right, #3949ab, #9c27b0)' // Professional blue-purple gradient
+      : 'linear-gradient(to right, #4caf50, #F5A9E1)'  // Original green-pink gradient
+  };
+  
+  // Dynamic loading indicator style based on mode
+  const loadingIndicatorStyle = {
+    ...styles.loadingIndicator,
+    border: isProfessional 
+      ? '3px solid rgba(57, 73, 171, 0.3)' 
+      : '3px solid rgba(76, 175, 80, 0.3)',
+    borderTopColor: isProfessional ? '#3949ab' : '#4caf50'
+  };
+  
+  // Dynamic play button style based on mode
+  const playPauseButtonStyle = {
+    ...styles.controlButton,
+    ...styles.playPauseButton,
+    background: isProfessional
+      ? 'linear-gradient(to right, #3949ab, #5c6bc0)'
+      : 'linear-gradient(to right, #4caf50, #66bb6a)',
+    opacity: (!canPlay || isLoading) ? 0.7 : 1,
+    cursor: (!canPlay || isLoading) ? 'not-allowed' : 'pointer'
+  };
+
   return (
     <div ref={containerRef} style={styles.container}>
       {/* Resize Handle */}
-      <div ref={resizeHandleRef} style={styles.resizeHandle}></div>
+      <div 
+        ref={resizeHandleRef} 
+        style={{
+          ...styles.resizeHandle,
+          background: isProfessional
+            ? 'linear-gradient(315deg, transparent 50%, #3949ab 50%, #9c27b0 100%)'
+            : 'linear-gradient(315deg, transparent 50%, #4caf50 50%, #F5A9E1 100%)'
+        }}
+      ></div>
       
       {/* Header */}
-      <div ref={headerRef} style={styles.header}>
-        <span style={{ fontWeight: 'bold' }}>ずんだもん & 四国めたん</span>
+      <div ref={headerRef} style={headerStyle}>
+        <div>
+          <span style={{ fontWeight: 'bold' }}>ずんだもん & 四国めたん</span>
+          {isProfessional && (
+            <span style={styles.modeIndicator}>プロフェッショナルモード</span>
+          )}
+        </div>
         <button onClick={onClose} style={styles.closeButton}>×</button>
       </div>
 
@@ -163,8 +212,8 @@ export function ConversationUI({
       <div ref={conversationAreaRef} style={styles.conversationArea}>
         {isLoading && (
           <div style={styles.loadingContainer}>
-            <div style={styles.loadingIndicator}></div>
-            会話を生成中...
+            <div style={loadingIndicatorStyle}></div>
+            {isProfessional ? 'プロフェッショナル会話を生成中...' : '会話を生成中...'}
           </div>
         )}
         {error && (
@@ -178,6 +227,7 @@ export function ConversationUI({
             character={line.character}
             text={line.text}
             isActive={isPlaying && index === currentLineIndex}
+            isProfessional={isProfessional}
           />
         ))}
       </div>
@@ -187,7 +237,7 @@ export function ConversationUI({
         <button 
           onClick={onPlayPause} 
           disabled={!canPlay || isLoading} 
-          style={{...styles.controlButton, ...styles.playPauseButton, opacity: (!canPlay || isLoading) ? 0.7 : 1, cursor: (!canPlay || isLoading) ? 'not-allowed' : 'pointer'}}
+          style={playPauseButtonStyle}
         >
           {isPlaying ? '⏸ 一時停止' : '🔊 再生'}
         </button>
@@ -230,19 +280,26 @@ const styles = {
     width: '20px',
     height: '20px',
     cursor: 'nwse-resize',
-    background: 'linear-gradient(315deg, transparent 50%, #4caf50 50%, #F5A9E1 100%)',
     borderBottomRightRadius: '5px', // Slight visual cue
     zIndex: 20, // Above header
   } as const,
   header: {
     padding: '10px 15px', // Adjusted padding
-    background: 'linear-gradient(to right, #4caf50, #F5A9E1)',
     color: 'white',
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
     cursor: 'move',
     flexShrink: 0, // Prevent header from shrinking
+  } as const,
+  modeIndicator: {
+    display: 'inline-block',
+    fontSize: '11px',
+    padding: '2px 6px',
+    background: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: '10px',
+    marginLeft: '8px',
+    verticalAlign: 'middle',
   } as const,
   closeButton: {
     background: 'none',
@@ -276,9 +333,7 @@ const styles = {
     width: '40px',
     height: '40px',
     margin: '15px auto',
-    border: '3px solid rgba(76, 175, 80, 0.3)',
     borderRadius: '50%',
-    borderTopColor: '#4caf50',
     animation: 'spin 1s ease-in-out infinite',
   } as const,
   errorContainer: {

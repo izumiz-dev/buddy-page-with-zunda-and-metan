@@ -173,8 +173,8 @@ export function OptionsPage() {
         <h4 style={styles.creditsHeader}>クレジット</h4>
         <p>本拡張機能では以下のキャラクターボイスを使用しています：</p>
         <ul style={styles.creditsList}>
-          <li>VOICEVOX:ずんだもん</li>
-          <li>VOICEVOX:四国めたん</li>
+          <li>ずんだもん by VOICEVOX</li>
+          <li>四国めたん by VOICEVOX</li>
         </ul>
         <p style={{ marginTop: '10px' }}>
           音声合成エンジン: <a href="https://voicevox.hiroshiba.jp/" target="_blank" rel="noopener noreferrer">VOICEVOX</a>

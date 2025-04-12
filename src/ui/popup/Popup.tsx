@@ -1,5 +1,6 @@
 import { h, Fragment } from 'preact';
 import { useState, useCallback } from 'preact/hooks';
+import { ConversationMode } from '../../types';
 
 import { Settings } from '../../types'; // Assuming Settings type might be useful later, or remove if not
 
@@ -13,18 +14,24 @@ export function Popup() {
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null); // Added for status messages
 
-  const handleStartConversation = useCallback(async () => {
+  const handleStartConversation = useCallback(async (mode: ConversationMode = ConversationMode.CASUAL) => {
     setIsLoading(true);
     setError(null);
     try {
       const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
       if (tab?.id) {
-        // Send message to content script
-        const response = await chrome.tabs.sendMessage(tab.id, { action: 'startConversation' });
+        // Send message to content script with the selected mode
+        const action = mode === ConversationMode.PROFESSIONAL 
+          ? 'startProfessionalConversation' 
+          : 'startConversation';
+        
+        const response = await chrome.tabs.sendMessage(tab.id, { action, mode });
         console.log('Popup received response from content script:', response);
         // Assuming content script sends back { status: 'processing' } on success
         if (response?.status === 'processing') {
-          setStatus('会話の準備を開始しました！');
+          setStatus(mode === ConversationMode.PROFESSIONAL 
+            ? 'プロフェッショナル会話の準備を開始しました！' 
+            : '会話の準備を開始しました！');
           // Optionally close the popup after starting
           window.close(); 
         } else {
@@ -77,6 +84,11 @@ export function Popup() {
       color: '#333',
       lineHeight: 1.4,
     },
+    btnContainer: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      gap: '10px',
+    },
     btn: {
       width: '100%',
       padding: '12px',
@@ -90,6 +102,10 @@ export function Popup() {
       boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
       transition: 'all 0.3s ease',
       opacity: isLoading ? 0.7 : 1,
+    },
+    btnProMode: {
+      backgroundColor: isLoading ? '#ccc' : '#3949AB',
+      borderColor: '#303F9F',
     },
     // Hover effect would ideally be done with CSS classes, but inline for now
     // btnHover: { backgroundColor: '#4caf50', transform: 'translateY(-2px)', boxShadow: '0 4px 8px rgba(0,0,0,0.2)' },
@@ -123,6 +139,21 @@ export function Popup() {
       fontSize: '10px',
       color: '#888',
       textAlign: 'center' as const,
+    },
+    modeDivider: {
+      margin: '15px 0 10px',
+      display: 'flex',
+      alignItems: 'center',
+      color: '#666',
+      fontSize: '12px',
+    },
+    dividerLine: {
+      flex: 1,
+      height: '1px',
+      backgroundColor: '#ddd',
+    },
+    dividerText: {
+      padding: '0 10px',
     }
   };
 
@@ -132,16 +163,34 @@ export function Popup() {
         <h1 style={styles.h1}>ずんだもんと四国めたんに<br />ページの内容をおはなししてもらう！</h1>
       </div>
 
-      <button
-        onClick={handleStartConversation}
-        disabled={isLoading}
-        style={styles.btn}
-        // Basic hover effect using inline JS (less ideal than CSS)
-        onMouseOver={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#4caf50'; }}
-        onMouseOut={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#66bb6a'; }}
-      >
-        {isLoading ? '処理中...' : 'お話を用意してもらう'}
-      </button>
+      <div style={styles.btnContainer}>
+        <button
+          onClick={() => handleStartConversation(ConversationMode.CASUAL)}
+          disabled={isLoading}
+          style={styles.btn}
+          // Basic hover effect using inline JS (less ideal than CSS)
+          onMouseOver={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#4caf50'; }}
+          onMouseOut={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#66bb6a'; }}
+        >
+          {isLoading ? '処理中...' : 'お話を用意してもらう'}
+        </button>
+        
+        <div style={styles.modeDivider}>
+          <div style={styles.dividerLine}></div>
+          <div style={styles.dividerText}>または</div>
+          <div style={styles.dividerLine}></div>
+        </div>
+        
+        <button
+          onClick={() => handleStartConversation(ConversationMode.PROFESSIONAL)}
+          disabled={isLoading}
+          style={{...styles.btn, ...styles.btnProMode}}
+          onMouseOver={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#303F9F'; }}
+          onMouseOut={(e) => { if (!isLoading) (e.target as HTMLButtonElement).style.backgroundColor = '#3949AB'; }}
+        >
+          {isLoading ? '処理中...' : 'プロフェッショナル解説モード'}
+        </button>
+      </div>
 
       {/* Status/Error Display */}
       {error && <div style={{...styles.status, ...styles.error}}>{error}</div>}
