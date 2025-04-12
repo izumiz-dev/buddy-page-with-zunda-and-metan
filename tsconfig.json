@@ -7,6 +7,8 @@
     "strict": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
+    "jsx": "react-jsx", // Added for Preact/React JSX
+    "jsxImportSource": "preact", // Added for Preact
 
     "outDir": "dist",
     "rootDir": "src",

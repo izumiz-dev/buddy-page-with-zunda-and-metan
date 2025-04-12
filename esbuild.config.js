@@ -9,12 +9,28 @@ if (!existsSync('./dist')) {
   mkdirSync('./dist');
 }
 
+const { dirname } = require('path'); // Add path module
+
+// Helper function to ensure directory exists
+const ensureDirSync = (dirPath) => {
+  if (!existsSync(dirPath)) {
+    mkdirSync(dirPath, { recursive: true });
+  }
+};
+
 // Copy static files
 const copyStaticFiles = () => {
   try {
+    // Copy manifest
     copyFileSync('./src/manifest.json', './dist/manifest.json');
-    copyFileSync('./src/popup.html', './dist/popup.html');
-    copyFileSync('./src/options.html', './dist/options.html');
+
+    // Copy HTML files to their respective subdirectories
+    const popupDest = './dist/ui/popup/index.html';
+    const optionsDest = './dist/ui/options/index.html';
+    ensureDirSync(dirname(popupDest));
+    ensureDirSync(dirname(optionsDest));
+    copyFileSync('./src/ui/popup/index.html', popupDest);
+    copyFileSync('./src/ui/options/index.html', optionsDest);
     
     // Copy assets directory if it exists
     if (existsSync('./src/assets')) {
@@ -50,10 +66,12 @@ const buildOptions = {
   entryPoints: [
     'src/background.ts',
     'src/content.ts',
-    'src/popup.ts',
-    'src/options.ts'
+    'src/ui/popup/index.tsx', // Changed from popup.ts
+    'src/ui/options/index.tsx' // Changed from options.ts
   ],
   bundle: true,
+  jsxFactory: 'h', // Added for Preact
+  jsxFragment: 'Fragment', // Added for Preact
   minify: !isWatchMode,
   sourcemap: isWatchMode ? 'inline' : false,
   target: ['chrome89'],
@@ -64,6 +82,12 @@ const buildOptions = {
     '.jpg': 'file',
     '.svg': 'file',
     '.css': 'text'
+  },
+  alias: { // Added for Preact compatibility
+    'react': 'preact/compat',
+    'react-dom/test-utils': 'preact/test-utils',
+    'react-dom': 'preact/compat',
+    'react/jsx-runtime': 'preact/jsx-runtime'
   },
   define: {
     'process.env.NODE_ENV': isWatchMode ? '"development"' : '"production"'

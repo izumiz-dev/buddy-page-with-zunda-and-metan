@@ -19,9 +19,11 @@
   "devDependencies": {
     "@types/chrome": "^0.0.250",
     "@types/node": "^20.11.5",
+    "@types/react": "^19.1.1",
     "esbuild": "^0.19.11",
     "typescript": "^5.3.3"
   },
   "dependencies": {
+    "preact": "^10.26.5"
   }
 }
