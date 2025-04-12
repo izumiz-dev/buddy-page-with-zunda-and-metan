@@ -55,7 +55,7 @@ export function Popup() {
     body: {
       width: '320px',
       padding: '15px',
-      fontFamily: '"Rounded Mplus 1c", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Meiryo", sans-serif',
+      fontFamily: '"Rounded Mplus 1c", "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans", "Noto Sans JP", "Meiryo", sans-serif',
       backgroundColor: '#f9f9f9',
       boxSizing: 'border-box' as const, // Ensure padding is included in width
     },

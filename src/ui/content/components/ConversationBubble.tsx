@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { Character } from '../types';
+import { Character } from '../../../types'; // Corrected import path
 
 interface ConversationBubbleProps {
   character: Character;
@@ -10,7 +10,7 @@ interface ConversationBubbleProps {
 const ConversationBubble = ({ character, text, isActive = false }: ConversationBubbleProps) => {
   const isZundamon = character === Character.ZUNDAMON;
   const characterName = isZundamon ? 'ずんだもん' : '四国めたん';
-  const bubbleColor = isZundamon ? '#A2E884' : '#8BB8E8';
+  const bubbleColor = isZundamon ? '#A2E884' : '#F5A9E1'; // Corrected Metan's color
   const activeClass = isActive ? 'active-bubble' : '';
   
   const containerStyle = {

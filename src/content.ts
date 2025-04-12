@@ -1,403 +1,281 @@
-import { MessageType, Conversation, ConversationLine } from './types';
-import { extractPageContent, createConversationUI, addConversationLine } from './utils/dom';
+import { h, render, Fragment } from 'preact'; // Added Preact imports
+import { MessageType, Conversation, ConversationLine, Character } from './types';
+import { extractPageContent } from './utils/extractPageContent';
+import { ConversationUI } from './ui/content/ConversationUI'; // Import the actual component
 
-// State
+// --- State Management ---
 let conversation: Conversation | null = null;
-let currentAudio: HTMLAudioElement | null = null;
+let currentAudio: HTMLAudioElement | null = null; // Audio playback still needs direct control
 let currentLineIndex = 0;
 let isPlaying = false;
-let ui: {
-  container: HTMLElement;
-  conversationArea: HTMLElement;
-  audioBtn: HTMLElement;
-  stopBtn: HTMLElement;
-} | null = null;
+let isLoading = false; // Added loading state
+let error: { code: string; message: string } | null = null; // Added error state
+let isUIVisible = false; // Track UI visibility
+let autoPlayOnReady = false; // For auto-play after generation
 
-// Global tracking variable to prevent duplicate UI creation
-let isProcessingRequest = false;
+// Preact root element reference
+let rootElement: HTMLElement | null = null;
+const ROOT_ELEMENT_ID = 'zunda-metan-content-root';
 
-// 自動再生をトラッキングするフラグ
-// 会話生成時に自動再生を有効化するため
-let autoPlayOnReady = false;
+// --- Core Logic ---
 
-// BFCacheに対応するためのライフサイクルイベントリスナー
-document.addEventListener('pageshow', (event) => {
-  // ページがBFCacheから復元された場合
+// BFCache handling
+window.addEventListener('pageshow', (event: PageTransitionEvent) => { // Use window for pageshow
   if (event.persisted) {
-    console.log('Page was restored from BFCache, reinitializing message listeners');
-    // UIが表示されていれば更新を試みる
-    if (document.getElementById('zunda-metan-conversation')) {
-      // UIの再構築などが必要な場合はここで対応
+    console.log('Page was restored from BFCache.');
+    if (isUIVisible && rootElement) {
+      renderConversationUI(); // Re-render if UI was visible
     }
   }
 });
 
-// Combined message listener to handle all messages
+// Message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  // Handle messages from background script
   if (message.type) {
-    console.log('Received message from background:', message.type);
-    if (message.type === MessageType.GENERATED_CONVERSATION) {
-      handleGeneratedConversation(message.payload);
-      sendResponse({ status: 'ok' }); // 明示的にレスポンスを返す
-      return false;
-    } else if (message.type === MessageType.SPEECH_SYNTHESIZED) {
-      handleSpeechSynthesized(message.payload);
-      sendResponse({ status: 'ok' }); // 明示的にレスポンスを返す
-      return false;
-    } else if (message.type === MessageType.ERROR) {
-      handleError(message.payload);
-      sendResponse({ status: 'ok' }); // 明示的にレスポンスを返す
-      return false;
+    console.log('Content script received message from background:', message.type);
+    switch (message.type) {
+      case MessageType.GENERATED_CONVERSATION:
+        handleGeneratedConversation(message.payload);
+        sendResponse({ status: 'ok' });
+        break;
+      case MessageType.SPEECH_SYNTHESIZED:
+        handleSpeechSynthesized(message.payload);
+        sendResponse({ status: 'ok' });
+        break;
+      case MessageType.ERROR:
+        handleError(message.payload);
+        sendResponse({ status: 'ok' });
+        break;
+      default:
+        sendResponse({ status: 'unknown_message_type' });
+        return false; 
     }
-  }
-  
-  // Handle message from popup
-  if (message.action === 'startConversation') {
-    console.log('Received startConversation command');
-    // Prevent duplicate requests
-    if (!isProcessingRequest) {
-      startConversation();
-    } else {
-      console.log('Request already in progress, ignoring duplicate');
-    }
-    sendResponse({ status: 'processing' }); // 明示的にレスポンスを返す
+    return false; // Indicate sync response not needed or handled
+  } else if (message.action === 'startConversation') {
+    console.log('Content script received startConversation command from popup');
+    startConversation(); // No need to check isProcessingRequest here, background handles it
+    sendResponse({ status: 'processing' }); // Acknowledge popup
     return false;
   }
-  
   return false;
 });
 
 /**
- * Handles the start conversation command from popup
+ * Initializes or restarts the conversation process.
  */
-const startConversation = () => {
-  console.log('Starting conversation...');
-  
-  // Set processing flag to prevent duplicates
-  isProcessingRequest = true;
-  
-  // Check for existing UI elements
-  const existingUI = document.getElementById('zunda-metan-conversation');
-  if (existingUI) {
-    // Remove any existing UI completely to avoid duplicates
-    existingUI.remove();
-    ui = null;
-  }
-  
-  // Create new UI
-  ui = createConversationUI();
-  setupUIListeners();
-  
-  // 音声の準備が完了するまでボタンを無効化
-  ui.audioBtn.disabled = true;
-  ui.stopBtn.disabled = true;
-  ui.stopBtn.style.opacity = '0.7';
-  ui.stopBtn.style.cursor = 'not-allowed';
+function startConversation() {
+  console.log('Starting conversation process...');
   
   // Reset state
   conversation = null;
-  currentAudio = null;
-  currentLineIndex = 0;
-  isPlaying = false;
-  
-  // 自動再生を有効化
+  stopAndResetPlayback(); // Stop any existing audio
+  isLoading = true;
+  error = null;
   autoPlayOnReady = true;
-  
-  // Show loading message
-  const loadingElement = document.createElement('div');
-  loadingElement.className = 'loading-message';
-  loadingElement.textContent = '会話を生成中...';
-  loadingElement.style.cssText = `
-    padding: 10px;
-    text-align: center;
-    color: #666;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100px;
-  `;
-  
-  // ローディングインジケーターを追加
-  const loadingIndicator = document.createElement('div');
-  loadingIndicator.style.cssText = `
-    width: 40px;
-    height: 40px;
-    margin: 15px auto;
-    border: 3px solid rgba(76, 175, 80, 0.3);
-    border-radius: 50%;
-    border-top-color: #4caf50;
-    animation: spin 1s ease-in-out infinite;
-  `;
-  
-  // アニメーションのCSSを追加
-  const styleElement = document.createElement('style');
-  styleElement.textContent = `
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .message {
-      animation: fadeIn 0.3s ease-in-out;
-    }
-  `;
-  document.head.appendChild(styleElement);
-  
-  loadingElement.appendChild(loadingIndicator);
-  ui.conversationArea.appendChild(loadingElement);
-  
-  // Extract page content
+  isUIVisible = true;
+
+  // Ensure root element exists and render initial UI
+  ensureRootElement();
+  renderConversationUI(); 
+
+  // Extract content and send to background
   const pageContent = extractPageContent();
-  
-  // Send message to background script
   chrome.runtime.sendMessage({
     type: MessageType.START_CONVERSATION,
     payload: pageContent
   });
-};
+}
 
 /**
- * Handles the generated conversation message from background script
- * @param generatedConversation Conversation object
+ * Handles the generated conversation data from the background.
  */
-const handleGeneratedConversation = (generatedConversation: Conversation) => {
-  if (!ui) return;
-  
-  // Save conversation
+function handleGeneratedConversation(generatedConversation: Conversation) {
   conversation = generatedConversation;
-  
-  // Clear loading message - ローディング要素を取得する
-  const loadingElement = ui.conversationArea.querySelector('.loading-message');
-  if (loadingElement) {
-    loadingElement.remove();
-  }
-  
-  // Add conversation lines to UI
-  ui.conversationArea.innerHTML = ''; // いったんクリア
-  for (const line of conversation.lines) {
-    addConversationLine(ui.conversationArea, line.character, line.text);
-  }
-  
-  // Reset the scroll position to the top
-  ui.conversationArea.scrollTop = 0;
-  
-  // Reset processing flag
-  isProcessingRequest = false;
-};
+  isLoading = false; // Turn off loading state
+  // isProcessingRequest = false; // Background handles request processing flag
+  error = null; // Clear any previous error
+
+  // Re-render the UI with the new conversation data
+  renderConversationUI(); 
+}
 
 /**
- * Handles the speech synthesized message from background script
- * @param payload Speech synthesis result
+ * Handles synthesized speech data for a specific line.
  */
-const handleSpeechSynthesized = (payload: { index: number; audioUrl: string }) => {
-  if (!conversation) return;
-  
-  // Save audio URL to conversation line
+function handleSpeechSynthesized(payload: { index: number; audioUrl: string }) {
+  if (!conversation || !conversation.lines[payload.index]) return;
   conversation.lines[payload.index].audioUrl = payload.audioUrl;
-  
-  // If this is the first line and we're not playing, enable play button
-  if (payload.index === 0 && !isPlaying && ui) {
-    ui.audioBtn.disabled = false;
-    
-    // 再生ボタンが有効になったら停止ボタンも有効化
-    ui.stopBtn.disabled = false;
-    ui.stopBtn.style.opacity = '1';
-    ui.stopBtn.style.cursor = 'pointer';
-    
-    // 自動再生フラグが立っていれば自動再生を開始
-    if (autoPlayOnReady) {
-      console.log('Auto-playing conversation');
-      // 自動再生フラグをリセット
-      autoPlayOnReady = false;
-      // 再生ボタンの表示を更新
-      ui.audioBtn.textContent = '⏸ 一時停止';
-      // 再生フラグをセット
-      isPlaying = true;
-      // 再生開始
-      playCurrentLine();
-    }
+
+  // Start playback automatically if it's the first line and auto-play is enabled
+  if (payload.index === 0 && autoPlayOnReady) {
+    console.log('Auto-playing conversation...');
+    autoPlayOnReady = false; // Disable auto-play after starting once
+    startPlayback(); 
   }
   
-  // 会話が再生中で、完全に音声が生成されたらユーザーに通知
-  if (isAllAudioReady() && ui) {
-    const statusElement = ui.conversationArea.querySelector('.audio-status');
-    if (!statusElement) {
-      const readyMessage = document.createElement('div');
-      readyMessage.className = 'audio-status';
-      readyMessage.textContent = '・・・音声準備完了・・・';
-      readyMessage.style.cssText = `
-        text-align: center;
-        color: #4caf50;
-        font-weight: bold;
-        margin: 10px 0;
-        padding: 5px;
-        background-color: rgba(76, 175, 80, 0.1);
-        border-radius: 5px;
-      `;
-      ui.conversationArea.appendChild(readyMessage);
-      
-      // 2秒後にメッセージをフェードアウト
-      setTimeout(() => {
-        if (readyMessage.parentNode) {
-          readyMessage.style.opacity = '0';
-          readyMessage.style.transition = 'opacity 1s';
-          
-          // フェードアウト後に要素を削除
-          setTimeout(() => {
-            if (readyMessage.parentNode) {
-              readyMessage.remove();
-            }
-          }, 1000);
-        }
-      }, 2000);
+  renderConversationUI(); // Re-render to update UI state (e.g., enable play button)
+}
+
+/**
+ * Handles error messages from the background.
+ */
+function handleError(errorPayload: { code: string; message: string }) {
+  console.error('Received error from background:', errorPayload);
+  error = errorPayload;
+  isLoading = false;
+  conversation = null; // Clear conversation on error
+  stopAndResetPlayback();
+  // isProcessingRequest = false; // Background handles request processing flag
+  renderConversationUI(); 
+}
+
+// --- UI Rendering ---
+
+/**
+ * Ensures the root element for the Preact app exists in the DOM.
+ */
+function ensureRootElement() {
+  if (!rootElement || !document.body.contains(rootElement)) {
+    rootElement = document.getElementById(ROOT_ELEMENT_ID) as HTMLElement | null;
+    if (!rootElement) {
+      rootElement = document.createElement('div');
+      rootElement.id = ROOT_ELEMENT_ID;
+      rootElement.style.position = 'fixed'; // Basic positioning
+      rootElement.style.zIndex = '2147483647'; // Ensure high z-index
+      document.body.appendChild(rootElement);
     }
   }
-};
+  rootElement.style.display = 'block'; // Ensure visible
+}
 
 /**
- * すべての音声が準備完了しているかチェック
+ * Renders the Preact ConversationUI component with the current state.
  */
-const isAllAudioReady = (): boolean => {
-  if (!conversation) return false;
-  
-  return conversation.lines.every(line => line.audioUrl !== undefined);
-};
-
-/**
- * Handles error messages from background script
- * @param error Error object
- */
-const handleError = (error: { code: string; message: string }) => {
-  if (!ui) return;
-  
-  // Clear loading message
-  ui.conversationArea.innerHTML = '';
-  
-  // Show error message
-  const errorElement = document.createElement('div');
-  errorElement.textContent = `エラー: ${error.message}`;
-  errorElement.style.cssText = `
-    padding: 10px;
-    text-align: center;
-    color: #f44336;
-  `;
-  ui.conversationArea.appendChild(errorElement);
-  
-  // Reset processing flag on error
-  isProcessingRequest = false;
-};
-
-/**
- * Sets up UI event listeners
- */
-const setupUIListeners = () => {
-  if (!ui) return;
-  
-  // Play button
-  ui.audioBtn.addEventListener('click', () => {
-    if (!conversation) return;
-    
-    if (isPlaying) {
-      // Pause playback
-      if (currentAudio) {
-        currentAudio.pause();
-      }
-      isPlaying = false;
-      ui!.audioBtn.textContent = '🔊 再生';
-    } else {
-      // Start or resume playback
-      playCurrentLine();
-      isPlaying = true;
-      ui!.audioBtn.textContent = '⏸ 一時停止';
-    }
-  });
-  
-  // Stop button
-  ui.stopBtn.addEventListener('click', () => {
-    stopPlayback();
-  });
-};
-
-/**
- * Plays the current conversation line
- */
-const playCurrentLine = () => {
-  if (!conversation || !ui) return;
-  
-  if (currentLineIndex >= conversation.lines.length) {
-    // Reached the end, reset to beginning
-    currentLineIndex = 0;
-  }
-  
-  const line = conversation.lines[currentLineIndex];
-  
-  if (!line.audioUrl) {
-    // Audio not ready, try the next line
-    currentLineIndex++;
-    playCurrentLine();
+function renderConversationUI() {
+  if (!rootElement) {
+    console.error('Cannot render UI: Root element not found.');
     return;
   }
-  
-  // Highlight the current line
-  const messageElements = ui.conversationArea.querySelectorAll('.message');
-  messageElements.forEach((el, index) => {
-    if (index === currentLineIndex) {
-      el.classList.add('active');
-      
-      // Scroll to the current line if needed
-      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    } else {
-      el.classList.remove('active');
-    }
+
+  // Render the actual ConversationUI component with current state and handlers
+  const uiComponent = h(ConversationUI, {
+      isLoading: isLoading,
+      conversation: conversation,
+      error: error,
+      isPlaying: isPlaying,
+      currentLineIndex: currentLineIndex,
+      onPlayPause: handlePlayPause,
+      onStop: handleStop,
+      onClose: handleClose,
   });
-  
-  // Create and play audio
-  currentAudio = new Audio(line.audioUrl);
-  
-  currentAudio.onended = () => {
-    // Move to next line when audio finishes
-    currentLineIndex++;
-    if (isPlaying && currentLineIndex < conversation!.lines.length) {
-      playCurrentLine();
-    } else if (currentLineIndex >= conversation!.lines.length) {
-      // End of conversation
-      stopPlayback();
-    }
-  };
-  
-  currentAudio.play().catch(error => {
-    console.error('Error playing audio:', error);
-    // Try to proceed to next line on error
-    currentLineIndex++;
-    if (isPlaying) {
-      playCurrentLine();
-    }
-  });
-};
+
+  render(uiComponent, rootElement);
+}
+
+// --- Playback Control ---
 
 /**
- * Stops the audio playback
+ * Starts or resumes audio playback from the current line.
  */
-const stopPlayback = () => {
+function startPlayback() {
+  if (isPlaying || !conversation) return;
+  
+  isPlaying = true;
+  playCurrentLine(); // Start playing the sequence
+  renderConversationUI(); // Update UI to show playing state
+}
+
+/**
+ * Pauses audio playback.
+ */
+function pausePlayback() {
+  if (!isPlaying) return;
+  
   if (currentAudio) {
     currentAudio.pause();
+  }
+  isPlaying = false;
+  renderConversationUI(); // Update UI to show paused state
+}
+
+/**
+ * Stops audio playback and resets the index.
+ */
+function stopAndResetPlayback() {
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.onended = null; // Remove listener
     currentAudio = null;
   }
-  
   isPlaying = false;
   currentLineIndex = 0;
-  
-  if (ui) {
-    ui.audioBtn.textContent = '🔊 再生';
-    
-    // Remove highlighting
-    const messageElements = ui.conversationArea.querySelectorAll('.message');
-    messageElements.forEach(el => {
-      el.classList.remove('active');
-    });
+  if (isUIVisible) { // Only re-render if UI is supposed to be visible
+      renderConversationUI(); // Update UI to show stopped state
   }
-};
+}
+
+/**
+ * Plays the audio for the current line index.
+ */
+function playCurrentLine() {
+  if (!isPlaying || !conversation || currentLineIndex >= conversation.lines.length) {
+    stopAndResetPlayback(); // Stop if end is reached or state is invalid
+    return;
+  }
+
+  const line = conversation.lines[currentLineIndex];
+
+  if (!line.audioUrl) {
+    // Audio not ready yet, wait or skip? For now, just stop.
+    console.warn(`Audio not ready for line ${currentLineIndex}, stopping playback.`);
+    stopAndResetPlayback(); 
+    return;
+  }
+
+  // Stop previous audio if any (shouldn't happen with proper onended handling)
+  if (currentAudio) {
+    currentAudio.pause();
+    currentAudio.onended = null;
+  }
+
+  // Create and play new audio
+  currentAudio = new Audio(line.audioUrl);
+  currentAudio.onended = () => {
+    // Automatically move to the next line when audio finishes
+    currentLineIndex++;
+    playCurrentLine(); // Play next line
+  };
+
+  currentAudio.play().catch(err => {
+    console.error('Error playing audio:', err);
+    error = { code: 'audio_playback_error', message: `音声の再生に失敗しました: ${err instanceof Error ? err.message : String(err)}` };
+    stopAndResetPlayback(); // Stop playback on error
+  });
+
+  renderConversationUI(); // Update UI to highlight the current line
+}
+
+// --- UI Event Handlers (Passed as props to Preact component) ---
+
+function handlePlayPause() {
+  if (isPlaying) {
+    pausePlayback();
+  } else {
+    startPlayback();
+  }
+}
+
+function handleStop() {
+  stopAndResetPlayback();
+}
+
+function handleClose() {
+  stopAndResetPlayback();
+  isUIVisible = false;
+  if (rootElement) {
+    render(null, rootElement); // Unmount the component
+    rootElement.style.display = 'none'; // Hide the root
+  }
+}
+
+console.log('ZundaMetan content script loaded.'); // Log script load

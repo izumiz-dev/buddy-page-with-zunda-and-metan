@@ -1,5 +1,5 @@
-import { h, render, Fragment } from 'preact';
-import { OptionsPage } from './OptionsPage';
+import { render } from 'preact';
+import { OptionsPage } from './OptionsPage'; // Removed .tsx extension
 
 const container = document.getElementById('app');
 if (container) {
