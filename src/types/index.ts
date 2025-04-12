@@ -23,6 +23,7 @@ export interface Settings {
   zundamonSpeakerId: string;
   metanSpeakerId: string;
   defaultConversationMode: ConversationMode;
+  enableVoice: boolean; // Add setting to enable/disable voice playback
 }
 
 // Default settings
@@ -31,7 +32,8 @@ export const DEFAULT_SETTINGS: Settings = {
   voicevoxUrl: 'http://localhost:50021',
   zundamonSpeakerId: '3',
   metanSpeakerId: '2',
-  defaultConversationMode: ConversationMode.CASUAL
+  defaultConversationMode: ConversationMode.CASUAL,
+  enableVoice: true // Default to enabled
 };
 
 // Message types for communication between background and content scripts

@@ -12,6 +12,7 @@ interface ConversationUIProps {
   onStop: () => void;
   onClose: () => void;
   mode?: ConversationMode;
+  enableVoice: boolean; // Add enableVoice prop
 }
 
 export function ConversationUI({
@@ -23,7 +24,8 @@ export function ConversationUI({
   onPlayPause,
   onStop,
   onClose,
-  mode = ConversationMode.CASUAL
+  mode = ConversationMode.CASUAL,
+  enableVoice // Destructure enableVoice
 }: ConversationUIProps) {
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -232,23 +234,25 @@ export function ConversationUI({
         ))}
       </div>
 
-      {/* Controls */}
-      <div style={styles.controls}>
-        <button 
-          onClick={onPlayPause} 
-          disabled={!canPlay || isLoading} 
-          style={playPauseButtonStyle}
-        >
-          {isPlaying ? '⏸ 一時停止' : '🔊 再生'}
-        </button>
-        <button 
-          onClick={onStop} 
-          disabled={!isPlaying && currentLineIndex === 0} // Disable if not playing and at start
-          style={{...styles.controlButton, ...styles.stopButton, opacity: (!isPlaying && currentLineIndex === 0) ? 0.7 : 1, cursor: (!isPlaying && currentLineIndex === 0) ? 'not-allowed' : 'pointer'}}
-        >
-          ⏹ 停止
-        </button>
-      </div>
+      {/* Controls - Conditionally render based on enableVoice */}
+      {enableVoice && (
+        <div style={styles.controls}>
+          <button 
+            onClick={onPlayPause} 
+            disabled={!canPlay || isLoading} 
+            style={playPauseButtonStyle}
+          >
+            {isPlaying ? '⏸ 一時停止' : '🔊 再生'}
+          </button>
+          <button 
+            onClick={onStop} 
+            disabled={!isPlaying && currentLineIndex === 0} // Disable if not playing and at start
+            style={{...styles.controlButton, ...styles.stopButton, opacity: (!isPlaying && currentLineIndex === 0) ? 0.7 : 1, cursor: (!isPlaying && currentLineIndex === 0) ? 'not-allowed' : 'pointer'}}
+          >
+            ⏹ 停止
+          </button>
+        </div>
+      )}
     </div>
   );
 }

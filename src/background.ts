@@ -95,9 +95,12 @@ const handleStartConversation = async (
       payload: conversation
     });
     
-    // Pre-synthesize speech for all lines
-    if (settings.voicevoxUrl) {
+    // Pre-synthesize speech for all lines only if voice is enabled and URL is set
+    if (settings.enableVoice && settings.voicevoxUrl) {
+      console.log('Background: Preloading speech as voice is enabled.');
       await preloadSpeech(conversation, settings.voicevoxUrl, settings.zundamonSpeakerId, settings.metanSpeakerId, tabId);
+    } else {
+      console.log('Background: Skipping speech preload as voice is disabled or URL is not set.');
     }
     
     // Reset processing flag after successful completion
@@ -166,6 +169,10 @@ const handleSynthesizeSpeech = async (text: string, character: Character) => {
     // Load settings
     const settings = await loadSettings();
     
+    // Check if voice is enabled and URL is set
+    if (!settings.enableVoice) {
+      throw new Error('Voice synthesis is disabled in settings.');
+    }
     if (!settings.voicevoxUrl) {
       throw new Error('VOICEVOX server URL is not set. Please set it in the options page.');
     }

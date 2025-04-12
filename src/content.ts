@@ -1,5 +1,5 @@
 import { h, render } from 'preact'; // Added Preact imports
-import { MessageType, Conversation, ConversationLine, Character, ConversationMode } from './types';
+import { MessageType, Conversation, ConversationLine, Character, ConversationMode, DEFAULT_SETTINGS } from './types'; // Import DEFAULT_SETTINGS
 import { extractPageContent } from './utils/extractPageContent';
 import { ConversationUI } from './ui/content/ConversationUI'; // Import the actual component
 import { loadSettings } from './utils/storage';
@@ -14,6 +14,7 @@ let error: { code: string; message: string } | null = null; // Added error state
 let isUIVisible = false; // Track UI visibility
 let autoPlayOnReady = false; // For auto-play after generation
 let currentMode = ConversationMode.CASUAL; // Default mode
+let enableVoice = true; // Added state for voice setting
 
 // Preact root element reference
 let rootElement: HTMLElement | null = null;
@@ -83,23 +84,29 @@ async function startConversation(mode: ConversationMode = ConversationMode.CASUA
   stopAndResetPlayback(); // Stop any existing audio
   isLoading = true;
   error = null;
-  autoPlayOnReady = true;
+  autoPlayOnReady = true; // Reset auto-play flag
   isUIVisible = true;
 
-  // Ensure root element exists and render initial UI
-  ensureRootElement();
-  renderConversationUI(); 
-
-  // Load default mode from settings if needed
-  if (mode === undefined) {
-    try {
-      const settings = await loadSettings();
+  // Load settings first
+  try {
+    const settings = await loadSettings();
+    enableVoice = settings.enableVoice; // Update voice setting state
+    // Use default mode from settings if not explicitly passed
+    if (mode === undefined) {
       mode = settings.defaultConversationMode || ConversationMode.CASUAL;
-    } catch (error) {
-      console.error('Error loading settings, using default mode:', error);
-      mode = ConversationMode.CASUAL;
     }
+    currentMode = mode; // Update current mode state
+  } catch (err) {
+    console.error('Error loading settings in startConversation:', err);
+    // Use defaults if loading fails
+    enableVoice = DEFAULT_SETTINGS.enableVoice;
+    currentMode = mode || DEFAULT_SETTINGS.defaultConversationMode;
   }
+
+  // Ensure root element exists and render initial UI (now with potentially updated enableVoice)
+  ensureRootElement();
+  renderConversationUI();
+
 
   // Extract content and send to background
   const pageContent = extractPageContent();
@@ -114,30 +121,70 @@ async function startConversation(mode: ConversationMode = ConversationMode.CASUA
 
 /**
  * Handles the generated conversation data from the background.
+ * Also triggers speech synthesis if enabled.
  */
-function handleGeneratedConversation(generatedConversation: Conversation) {
+async function handleGeneratedConversation(generatedConversation: Conversation) {
   conversation = generatedConversation;
   isLoading = false; // Turn off loading state
   error = null; // Clear any previous error
-  
+
   // Update current mode if available from conversation
   if (conversation.mode) {
     currentMode = conversation.mode;
   }
 
-  // Re-render the UI with the new conversation data
-  renderConversationUI(); 
+  // Load settings again to ensure we have the latest value for enableVoice
+  try {
+    const settings = await loadSettings();
+    enableVoice = settings.enableVoice;
+  } catch (err) {
+    console.error('Error loading settings in handleGeneratedConversation:', err);
+    enableVoice = DEFAULT_SETTINGS.enableVoice; // Fallback to default
+  }
+
+  // Re-render the UI with the new conversation data (before synthesis starts)
+  renderConversationUI();
+
+  // Trigger speech synthesis for each line IF voice is enabled
+  if (enableVoice && conversation && conversation.lines) {
+    console.log('Voice enabled, requesting synthesis...');
+    conversation.lines.forEach((line, index) => {
+      // Send message to background to synthesize speech for this line
+      chrome.runtime.sendMessage({
+        type: MessageType.SYNTHESIZE_SPEECH,
+        payload: {
+          text: line.text,
+          character: line.character,
+          index: index // Pass index to map audio back correctly
+        }
+      });
+    });
+  } else {
+    console.log('Voice disabled, skipping synthesis.');
+    // If voice is disabled, we might want to trigger "playback" completion immediately
+    // or handle the UI state differently. For now, playback controls rely on audioUrl.
+    if (autoPlayOnReady) {
+        // If auto-play was intended but voice is off, reset the flag
+        // and potentially update UI to show it won't play.
+        autoPlayOnReady = false;
+        // Optionally update UI state here if needed
+        renderConversationUI();
+    }
+  }
 }
 
 /**
  * Handles synthesized speech data for a specific line.
  */
 function handleSpeechSynthesized(payload: { index: number; audioUrl: string }) {
-  if (!conversation || !conversation.lines[payload.index]) return;
+  // Only process if voice is still considered enabled and conversation exists
+  if (!enableVoice || !conversation || !conversation.lines[payload.index]) return;
+
   conversation.lines[payload.index].audioUrl = payload.audioUrl;
 
   // Start playback automatically if it's the first line and auto-play is enabled
-  if (payload.index === 0 && autoPlayOnReady) {
+  // Ensure isPlaying is false before starting automatically
+  if (payload.index === 0 && autoPlayOnReady && !isPlaying) {
     console.log('Auto-playing conversation...');
     autoPlayOnReady = false; // Disable auto-play after starting once
     startPlayback(); 
@@ -196,7 +243,8 @@ function renderConversationUI() {
       onPlayPause: handlePlayPause,
       onStop: handleStop,
       onClose: handleClose,
-      mode: currentMode
+      mode: currentMode,
+      enableVoice: enableVoice // Pass voice setting to UI
   });
 
   render(uiComponent, rootElement);

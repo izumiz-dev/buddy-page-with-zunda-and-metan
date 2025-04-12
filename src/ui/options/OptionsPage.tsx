@@ -156,6 +156,27 @@ export function OptionsPage() {
           </div>
         </fieldset>
 
+        {/* Add General Settings Fieldset */}
+        <fieldset style={styles.fieldset}>
+          <legend style={styles.legend}>一般設定</legend>
+          <div style={styles.formGroup}>
+            <label htmlFor="enableVoice" style={{...styles.label, display: 'flex', alignItems: 'center', gap: '8px'}}>
+              <input
+                type="checkbox"
+                id="enableVoice"
+                name="enableVoice"
+                checked={settings.enableVoice}
+                onChange={handleInputChange} // Use onChange for checkboxes in Preact
+                style={{ width: 'auto', marginRight: '5px' }} // Adjust style for checkbox
+              />
+              音声読み上げを有効にする
+            </label>
+            <small style={styles.smallText}>
+              チェックを外すと、会話の自動音声読み上げが無効になります。
+            </small>
+          </div>
+        </fieldset>
+
         <div style={styles.buttonGroup}>
           <button type="submit" style={{...styles.button, ...styles.saveButton}}>
             保存
