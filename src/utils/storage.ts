@@ -14,14 +14,14 @@ export const saveSettings = async (settings: Settings): Promise<void> => {
     if (settings.geminiApiKey) {
       await apiKeyManager.saveApiKey('geminiApiKey', settings.geminiApiKey);
       
-      // Remove API key from settings object to avoid duplication
-      const settingsCopy = { ...settings };
-      delete settingsCopy.geminiApiKey;
+      // Create a new object excluding the API key, instead of using delete
+      const { geminiApiKey, ...otherSettings } = settings; 
       
       // Store other settings
-      await apiKeyManager.saveSetting(SETTINGS_KEY, JSON.stringify(settingsCopy));
+      await apiKeyManager.saveSetting(SETTINGS_KEY, JSON.stringify(otherSettings));
     } else {
-      // Store settings without API key
+      // If API key is not provided or empty, save all other settings
+      const { geminiApiKey, ...otherSettings } = settings; // Ensure API key is excluded if empty
       await apiKeyManager.saveSetting(SETTINGS_KEY, JSON.stringify(settings));
     }
   } catch (error) {

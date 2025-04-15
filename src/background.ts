@@ -1,4 +1,4 @@
-import { MessageType, Character, Conversation, ConversationLine } from './types';
+import { MessageType, Character, Conversation, ConversationLine, ConversationMode } from './types';
 import { GeminiAPI } from './utils/gemini';
 import { VoicevoxAPI } from './utils/voicevox';
 import { loadSettings } from './utils/storage';
@@ -17,7 +17,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!isProcessingApiRequest) {
         // 非同期処理を行う場合、即座に処理中のレスポンスを返す
         sendResponse({ status: 'processing' });
-        handleStartConversation(message.payload, sender.tab?.id);
+        handleStartConversation(message.payload.content, message.payload.mode, sender.tab?.id);
       } else {
         console.log('API request already in progress, ignoring duplicate');
         sendResponse({ status: 'already_processing' });
@@ -55,11 +55,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 /**
  * Handles the start conversation message from popup or content script
  * @param pageContent Content of the webpage
+ * @param mode Conversation mode (casual or professional)
  * @param tabId ID of the tab that sent the message
  */
-const handleStartConversation = async (pageContent: string, tabId?: number) => {
+const handleStartConversation = async (
+  pageContent: string, 
+  mode: ConversationMode = ConversationMode.CASUAL, 
+  tabId?: number
+) => {
   if (!tabId) return;
-  console.log('Background: handling start conversation request');
+  console.log(`Background: handling start conversation request in ${mode} mode`);
   
   // Set processing flag
   isProcessingApiRequest = true;
@@ -75,11 +80,14 @@ const handleStartConversation = async (pageContent: string, tabId?: number) => {
     // Initialize Gemini API
     const geminiApi = new GeminiAPI(settings.geminiApiKey);
     
-    // Generate conversation
-    const conversationText = await geminiApi.generateConversation(pageContent);
+    // Generate conversation with the specified mode
+    const conversationText = await geminiApi.generateConversation(pageContent, mode);
     
     // Parse conversation
     const conversation = parseConversation(conversationText);
+    
+    // Add mode to conversation metadata
+    conversation.mode = mode;
     
     // Send the conversation back to the content script
     chrome.tabs.sendMessage(tabId, {
@@ -87,9 +95,12 @@ const handleStartConversation = async (pageContent: string, tabId?: number) => {
       payload: conversation
     });
     
-    // Pre-synthesize speech for all lines
-    if (settings.voicevoxUrl) {
+    // Pre-synthesize speech for all lines only if voice is enabled and URL is set
+    if (settings.enableVoice && settings.voicevoxUrl) {
+      console.log('Background: Preloading speech as voice is enabled.');
       await preloadSpeech(conversation, settings.voicevoxUrl, settings.zundamonSpeakerId, settings.metanSpeakerId, tabId);
+    } else {
+      console.log('Background: Skipping speech preload as voice is disabled or URL is not set.');
     }
     
     // Reset processing flag after successful completion
@@ -158,6 +169,10 @@ const handleSynthesizeSpeech = async (text: string, character: Character) => {
     // Load settings
     const settings = await loadSettings();
     
+    // Check if voice is enabled and URL is set
+    if (!settings.enableVoice) {
+      throw new Error('Voice synthesis is disabled in settings.');
+    }
     if (!settings.voicevoxUrl) {
       throw new Error('VOICEVOX server URL is not set. Please set it in the options page.');
     }

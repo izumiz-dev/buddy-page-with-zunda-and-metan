@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "description": "Webページの内容をずんだもんと四国めたんが会話形式で解説します",
   "action": {
-    "default_popup": "popup.html"
+    "default_popup": "ui/popup/index.html"
   },
   "background": {
     "service_worker": "background.js",
@@ -17,7 +17,7 @@
       "css": []
     }
   ],
-  "options_page": "options.html",
+  "options_page": "ui/options/index.html",
   "permissions": [
     "storage",
     "activeTab",

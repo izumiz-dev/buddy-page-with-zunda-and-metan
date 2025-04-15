@@ -4,12 +4,26 @@ export enum Character {
   METAN = 'metan'
 }
 
+// Conversation mode types
+export enum ConversationMode {
+  CASUAL = 'casual',
+  PROFESSIONAL = 'professional'
+}
+
+// Gemini model types
+export enum GeminiModel {
+  GEMINI_FLASH = 'gemini-2.0-flash',
+  GEMINI_PRO = 'gemini-2.5-pro-preview-03-25'
+}
+
 // Settings type
 export interface Settings {
   geminiApiKey: string;
   voicevoxUrl: string;
   zundamonSpeakerId: string;
   metanSpeakerId: string;
+  defaultConversationMode: ConversationMode;
+  enableVoice: boolean; // Add setting to enable/disable voice playback
 }
 
 // Default settings
@@ -17,7 +31,9 @@ export const DEFAULT_SETTINGS: Settings = {
   geminiApiKey: '',
   voicevoxUrl: 'http://localhost:50021',
   zundamonSpeakerId: '3',
-  metanSpeakerId: '2'
+  metanSpeakerId: '2',
+  defaultConversationMode: ConversationMode.CASUAL,
+  enableVoice: true // Default to enabled
 };
 
 // Message types for communication between background and content scripts
@@ -43,6 +59,7 @@ export interface ConversationLine {
 
 export interface Conversation {
   lines: ConversationLine[];
+  mode?: ConversationMode;
 }
 
 // Error types

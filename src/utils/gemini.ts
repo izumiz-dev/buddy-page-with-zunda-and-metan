@@ -1,34 +1,54 @@
 import { loadConversationPrompt } from './promptLoader';
-import { GeminiResponse } from '../types';
+import { GeminiResponse, ConversationMode, GeminiModel } from '../types';
 
 /**
  * Service class for interacting with the Google Gemini API
  */
 export class GeminiAPI {
   private apiKey: string;
-  private endpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+  private baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models';
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
   }
 
   /**
+   * Get the appropriate endpoint based on conversation mode
+   * @param mode Conversation mode
+   * @returns API endpoint URL
+   */
+  private getEndpoint(mode: ConversationMode = ConversationMode.CASUAL): string {
+    const model = mode === ConversationMode.PROFESSIONAL 
+      ? GeminiModel.GEMINI_PRO 
+      : GeminiModel.GEMINI_FLASH;
+    
+    return `${this.baseEndpoint}/${model}:generateContent`;
+  }
+
+  /**
    * Generate conversation between Zundamon and Metan about the provided content
    * @param content The webpage content
+   * @param mode Conversation mode (casual or professional)
    * @returns Generated conversation text
    */
-  async generateConversation(content: string): Promise<string> {
+  async generateConversation(content: string, mode: ConversationMode = ConversationMode.CASUAL): Promise<string> {
     try {
-      // Get prompt template
-      const promptTemplate = loadConversationPrompt();
+      // Get prompt template according to mode
+      const promptTemplate = loadConversationPrompt(mode);
       
       // Replace placeholder in prompt with actual content
       const fullPrompt = promptTemplate.replace('{{CONTENT}}', content);
       
-      // API endpoint with API key as query parameter
-      const requestUrl = `${this.endpoint}?key=${this.apiKey}`;
+      // Get appropriate endpoint based on mode
+      const endpoint = this.getEndpoint(mode);
       
-      // API request body
+      // API endpoint with API key as query parameter
+      const requestUrl = `${endpoint}?key=${this.apiKey}`;
+      
+      // Adjust temperature based on mode - lower for professional for more focused responses
+      const temperature = mode === ConversationMode.PROFESSIONAL ? 0.3 : 0.7;
+      
+      // API request body - increase max tokens for professional mode
       const requestBody = {
         contents: [
           {
@@ -36,10 +56,10 @@ export class GeminiAPI {
           }
         ],
         generationConfig: {
-          temperature: 0.7,
+          temperature: temperature,
           topK: 40,
           topP: 0.95,
-          maxOutputTokens: 2048,
+          maxOutputTokens: mode === ConversationMode.PROFESSIONAL ? 4096 : 2048,
         },
         safetySettings: [
           {
